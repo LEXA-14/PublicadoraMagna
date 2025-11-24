@@ -12,6 +12,7 @@ public class Institucion
     public string CorreoContacto { get; set; }
     public string Telefono { get; set; }
     public DateTime FechaRegistro { get; set; }
+    public List<Articulo> Articulos { get; set; } = new();
 
 
     public ICollection<Usuario> Usuarios { get; set; }
