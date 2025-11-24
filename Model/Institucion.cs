@@ -9,6 +9,8 @@ public class Institucion
     [Required]
     public string Nombre { get; set; }
     public string Rnc { get; set; }
+
+    public string EmailAdmin { get; set; }
     public string CorreoContacto { get; set; }
     public string Telefono { get; set; }
     public DateTime FechaRegistro { get; set; }

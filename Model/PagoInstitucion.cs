@@ -1,7 +1,10 @@
-﻿namespace PublicadoraMagna.Model;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace PublicadoraMagna.Model;
 
 public class PagoInstitucion
 {
+    [Key]
    public int PagoId { get; set; }
    public int InstitucionId { get; set; }
    public Institucion Institucion { get; set; }

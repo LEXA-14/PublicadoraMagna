@@ -8,14 +8,16 @@ public class Articulo
         public int ArticuloId { get; set; }
         public string Titulo { get; set; } = string.Empty;
         public string Resumen { get; set; }
-        public string Contenido { get; set; }
-
-        public string AutorId { get; set; }            
+        public string Contenido { get; set; }           
 
         public int? InstitucionId { get; set; }       
         public Institucion Institucion { get; set; }
 
-       
+        public int? PeriodistaId { get; set; }   
+        public Periodista Periodista { get; set; } 
+
+        public bool EsLibre { get; set; }
+
         public int CategoriaId { get; set; }
         public Categoria Categoria { get; set; }
 

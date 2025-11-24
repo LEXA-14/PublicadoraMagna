@@ -11,9 +11,13 @@ namespace PublicadoraMagna.Data
         public DbSet<Articulo> Articulos { get; set; }
         public DbSet<Categoria> Categorias { get; set; }
       
-        public DbSet<PagoInstitucion> Pagos { get; set; }
-        public DbSet<DetallePagoInstitucion> DetallesPagos { get; set; }
+        public DbSet<PagoInstitucion> PagosInstitucion{ get; set; }
+        public DbSet<DetallePagoInstitucion> DetallesPagosInstitucion { get; set; }
         public DbSet<Periodista> Periodistas { get; set; }
+        public DbSet<PagoPeriodista> PagosPeriodistas { get; set; }
+        public DbSet<DetallePagoPeriodista> DetallesPagosPeriodistas { get; set; }
+
+      
         public DbSet<ArticuloServicioPromocional> ArticuloServicioPromocional { get; set; }
     }
 }
