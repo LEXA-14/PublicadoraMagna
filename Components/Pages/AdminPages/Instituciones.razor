@@ -1,0 +1,251 @@
+@page "/instituciones"
+@rendermode InteractiveServer
+@using PublicadoraMagna.Model
+@using PublicadoraMagna.Services
+@using Microsoft.EntityFrameworkCore
+@inject InstitucionService institucionService
+@inject IDbContextFactory<PublicadoraMagna.Data.ApplicationDbContext> DbFactory
+
+<PageTitle>Gestión de Instituciones</PageTitle>
+
+<div class="container-fluid">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">
+                <i class="bi bi-building"></i> Gestión de Instituciones
+            </h3>
+        </div>
+        <div class="card-body">
+            <!-- Formulario -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>@(institucion.InstitucionId == 0 ? "Nueva Institución" : "Editar Institución")</h5>
+                        </div>
+                        <div class="card-body">
+                            <EditForm Model="institucion" OnValidSubmit="Guardar">
+                                <DataAnnotationsValidator />
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Nombre:</label>
+                                            <InputText @bind-Value="institucion.Nombre" class="form-control" placeholder="Nombre de la institución" />
+                                            <ValidationMessage For="@(() => institucion.Nombre)" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-3">
+                                        <div class="mb-3">
+                                            <label class="form-label">RNC:</label>
+                                            <InputText @bind-Value="institucion.Rnc" class="form-control" placeholder="RNC" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <div class="mb-3">
+                                            <label class="form-label">Teléfono:</label>
+                                            <InputText @bind-Value="institucion.Telefono" class="form-control" placeholder="809-000-0000" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">Email Admin:</label>
+                                            <InputText @bind-Value="institucion.EmailAdmin" class="form-control" type="email" placeholder="admin@institucion.com" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">Correo Contacto:</label>
+                                            <InputText @bind-Value="institucion.CorreoContacto" class="form-control" type="email" placeholder="contacto@institucion.com" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="bi bi-save"></i> Guardar
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" @onclick="Nuevo">
+                                        <i class="bi bi-file-earmark-plus"></i> Nuevo
+                                    </button>
+                                </div>
+                            </EditForm>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Instituciones -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Listado de Instituciones</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (instituciones == null)
+                            {
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Cargando...</span>
+                                    </div>
+                                </div>
+                            }
+                            else if (!instituciones.Any())
+                            {
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> No hay instituciones registradas
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Nombre</th>
+                                                <th>RNC</th>
+                                                <th>Email Admin</th>
+                                                <th>Teléfono</th>
+                                                <th>Artículos</th>
+                                                <th>Fecha Registro</th>
+                                                <th class="text-center">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var inst in instituciones)
+                                            {
+                                                <tr>
+                                                    <td>@inst.InstitucionId</td>
+                                                    <td>@inst.Nombre</td>
+                                                    <td>@inst.Rnc</td>
+                                                    <td>@inst.EmailAdmin</td>
+                                                    <td>@inst.Telefono</td>
+                                                    <td>@inst.Articulos.Count</td>
+                                                    <td>@inst.FechaRegistro.ToString("dd/MM/yyyy")</td>
+                                                    <td class="text-center">
+                                                        <button class="btn btn-sm btn-primary" @onclick="() => Seleccionar(inst)">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-danger" @onclick="async () => await Eliminar(inst.InstitucionId)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(mensaje))
+            {
+                <div class="alert alert-@tipoAlerta alert-dismissible fade show mt-3" role="alert">
+                    @mensaje
+                    <button type="button" class="btn-close" @onclick="() => mensaje = string.Empty"></button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Institucion> instituciones = new();
+    private Institucion institucion = new();
+    private string mensaje = string.Empty;
+    private string tipoAlerta = "info";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Listar();
+    }
+
+    private async Task Listar()
+    {
+        instituciones = await institucionService.Listar();
+    }
+
+    private async Task Guardar()
+    {
+        try
+        {
+            institucion.FechaRegistro = institucion.InstitucionId == 0 ? DateTime.Now : institucion.FechaRegistro;
+            
+            var resultado = await institucionService.Guardar(institucion);
+            
+            if (resultado)
+            {
+                await Listar();
+                Nuevo();
+                MostrarMensaje("Institución guardada correctamente", "success");
+            }
+            else
+            {
+                MostrarMensaje("No se pudo guardar la institución", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"Error: {ex.Message}", "danger");
+        }
+    }
+
+    private void Nuevo()
+    {
+        institucion = new Institucion();
+    }
+
+    private void Seleccionar(Institucion inst)
+    {
+        institucion = new Institucion
+        {
+            InstitucionId = inst.InstitucionId,
+            Nombre = inst.Nombre,
+            Rnc = inst.Rnc,
+            EmailAdmin = inst.EmailAdmin,
+            CorreoContacto = inst.CorreoContacto,
+            Telefono = inst.Telefono,
+            FechaRegistro = inst.FechaRegistro
+        };
+    }
+
+    private async Task Eliminar(int id)
+    {
+        try
+        {
+            var resultado = await institucionService.Eliminar(id);
+            
+            if (resultado)
+            {
+                await Listar();
+                Nuevo();
+                MostrarMensaje("Institución eliminada correctamente", "success");
+            }
+            else
+            {
+                MostrarMensaje("No se pudo eliminar la institución", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"Error: {ex.Message}", "danger");
+        }
+    }
+
+    private void MostrarMensaje(string msg, string tipo)
+    {
+        mensaje = msg;
+        tipoAlerta = tipo;
+    }
+}
