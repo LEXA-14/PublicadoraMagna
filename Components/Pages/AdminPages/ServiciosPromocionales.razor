@@ -1,0 +1,228 @@
+﻿@page "/servicios-promocionales"
+@rendermode InteractiveServer
+@using PublicadoraMagna.Model
+@using PublicadoraMagna.Services
+@using Microsoft.EntityFrameworkCore
+@inject ServicioPromocionalService servicioService
+@inject IDbContextFactory<PublicadoraMagna.Data.ApplicationDbContext> DbFactory
+
+<PageTitle>Servicios Promocionales</PageTitle>
+
+<div class="container-fluid">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">
+                <i class="bi bi-megaphone"></i> Servicios Promocionales
+            </h3>
+        </div>
+        <div class="card-body">
+            <!-- Formulario -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>@(servicio.ServicioPromocionalId == 0 ? "Nuevo Servicio" : "Editar Servicio")</h5>
+                        </div>
+                        <div class="card-body">
+                            <EditForm Model="servicio" OnValidSubmit="Guardar">
+                                <DataAnnotationsValidator />
+
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">Nombre:</label>
+                                            <InputText @bind-Value="servicio.Nombre" class="form-control" placeholder="Ej: Banner Principal, Destacado, etc." />
+                                            <ValidationMessage For="@(() => servicio.Nombre)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">Precio:</label>
+                                            <InputNumber @bind-Value="servicio.Precio" class="form-control" placeholder="0.00" />
+                                            <ValidationMessage For="@(() => servicio.Precio)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">Descripción:</label>
+                                            <InputText @bind-Value="servicio.Descripcion" class="form-control" placeholder="Descripción breve" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="bi bi-save"></i> Guardar
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" @onclick="Nuevo">
+                                        <i class="bi bi-file-earmark-plus"></i> Nuevo
+                                    </button>
+                                </div>
+                            </EditForm>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Servicios -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Listado de Servicios Promocionales</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (servicios == null)
+                            {
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Cargando...</span>
+                                    </div>
+                                </div>
+                            }
+                            else if (!servicios.Any())
+                            {
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> No hay servicios promocionales registrados
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Nombre</th>
+                                                <th>Descripción</th>
+                                                <th>Precio</th>
+                                                <th>Fecha Creación</th>
+                                                <th class="text-center">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var srv in servicios)
+                                            {
+                                                <tr>
+                                                    <td>@srv.ServicioPromocionalId</td>
+                                                    <td>@srv.Nombre</td>
+                                                    <td>@srv.Descripcion</td>
+                                                    <td>@srv.Precio.ToString("C")</td>
+                                                    <td>@srv.FechaCreacion.ToString("dd/MM/yyyy")</td>
+                                                    <td class="text-center">
+                                                        <button class="btn btn-sm btn-primary" @onclick="() => Seleccionar(srv)">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-danger" @onclick="async () => await Eliminar(srv.ServicioPromocionalId)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(mensaje))
+            {
+                <div class="alert alert-@tipoAlerta alert-dismissible fade show mt-3" role="alert">
+                    @mensaje
+                    <button type="button" class="btn-close" @onclick="() => mensaje = string.Empty"></button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ServicioPromocional> servicios = new();
+    private ServicioPromocional servicio = new();
+    private string mensaje = string.Empty;
+    private string tipoAlerta = "info";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Listar();
+    }
+
+    private async Task Listar()
+    {
+        servicios = await servicioService.Listar();
+    }
+
+    private async Task Guardar()
+    {
+        try
+        {
+            var resultado = await servicioService.Guardar(servicio);
+
+            if (resultado)
+            {
+                await Listar();
+                Nuevo();
+                MostrarMensaje("Servicio guardado correctamente", "success");
+            }
+            else
+            {
+                MostrarMensaje("No se pudo guardar el servicio", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"Error: {ex.Message}", "danger");
+        }
+    }
+
+    private void Nuevo()
+    {
+        servicio = new ServicioPromocional();
+    }
+
+    private void Seleccionar(ServicioPromocional srv)
+    {
+        servicio = new ServicioPromocional
+        {
+            ServicioPromocionalId = srv.ServicioPromocionalId,
+            Nombre = srv.Nombre,
+            Descripcion = srv.Descripcion,
+            Precio = srv.Precio,
+            FechaCreacion = srv.FechaCreacion
+        };
+    }
+
+    private async Task Eliminar(int id)
+    {
+        try
+        {
+            var resultado = await servicioService.Eliminar(id);
+
+            if (resultado)
+            {
+                await Listar();
+                Nuevo();
+                MostrarMensaje("Servicio eliminado correctamente", "success");
+            }
+            else
+            {
+                MostrarMensaje("No se pudo eliminar el servicio", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"Error: {ex.Message}", "danger");
+        }
+    }
+
+    private void MostrarMensaje(string msg, string tipo)
+    {
+        mensaje = msg;
+        tipoAlerta = tipo;
+    }
+}
