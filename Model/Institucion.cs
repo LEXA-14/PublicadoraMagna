@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using PublicadoraMagna.Data;
+using System.ComponentModel.DataAnnotations;
 
 namespace PublicadoraMagna.Model;
 
@@ -17,5 +18,5 @@ public class Institucion
     public List<Articulo> Articulos { get; set; } = new();
 
 
-    public ICollection<ApplicationUser> Usuarios { get; set; }
+    public ICollection<ApplicationUser> Usuarios { get; set; } =new List<ApplicationUser>();
 }
