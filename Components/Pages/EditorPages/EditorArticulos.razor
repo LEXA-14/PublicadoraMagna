@@ -1,0 +1,215 @@
+@page "/editor/articulos"
+@* @attribute [Authorize(Roles = "Admin,Editor")] *@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@inject ArticuloService ArticuloService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Artículos Pendientes - Editor</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3><i class="bi bi-clipboard-check"></i> Artículos Pendientes de Aprobación</h3>
+        <span class="badge bg-primary fs-5">@articulosPendientes.Count pendientes</span>
+    </div>
+
+    @if (!articulosPendientes.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No hay artículos pendientes de aprobación
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var articulo in articulosPendientes)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-warning bg-opacity-10">
+                            <h6 class="mb-0">@articulo.Titulo</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted small mb-2">
+                                <i class="bi bi-folder"></i> @articulo.Categoria?.Nombre
+                            </p>
+                            
+                            @if (articulo.PeriodistaId.HasValue)
+                            {
+                                <p class="text-muted small mb-2">
+                                    <i class="bi bi-person"></i> @articulo.Periodista?.Nombres
+                                </p>
+                            }
+                            
+                            @if (articulo.InstitucionId.HasValue)
+                            {
+                                <p class="text-muted small mb-2">
+                                    <i class="bi bi-building"></i> @articulo.Institucion?.Nombre
+                                </p>
+                            }
+
+                            <p class="card-text">@articulo.Resumen</p>
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <small class="text-muted">
+                                    @articulo.FechaEnvio?.ToString("dd/MM/yyyy HH:mm")
+                                </small>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-sm btn-primary" @onclick="() => VerDetalle(articulo.ArticuloId)">
+                                    <i class="bi bi-eye"></i> Ver Detalle
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (articuloSeleccionado != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@articuloSeleccionado.Titulo</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <strong>Categoría:</strong> @articuloSeleccionado.Categoria?.Nombre
+                    </div>
+                    
+                    @if (articuloSeleccionado.PeriodistaId.HasValue)
+                    {
+                        <div class="mb-3">
+                            <strong>Autor:</strong> @articuloSeleccionado.Periodista?.Nombres (Periodista)
+                        </div>
+                    }
+                    
+                    @if (articuloSeleccionado.InstitucionId.HasValue)
+                    {
+                        <div class="mb-3">
+                            <strong>Publicado por:</strong> @articuloSeleccionado.Institucion?.Nombre (Institución)
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <strong>Contenido:</strong>
+                        <div class="border rounded p-3 mt-2" style="white-space: pre-wrap;">@articuloSeleccionado.Contenido</div>
+                    </div>
+
+                    @if (articuloSeleccionado.Imagenes.Any())
+                    {
+                        <div class="mb-3">
+                            <strong>Imágenes:</strong>
+                            @foreach (var img in articuloSeleccionado.Imagenes)
+                            {
+                                <div class="mt-2">
+                                    <a href="@img" target="_blank">@img</a>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">Comentario (opcional)</label>
+                        <textarea class="form-control" rows="3" @bind="comentario" placeholder="Agregar comentario..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" @onclick="Rechazar">
+                        <i class="bi bi-x-circle"></i> Rechazar
+                    </button>
+                    <button type="button" class="btn btn-success" @onclick="Aprobar">
+                        <i class="bi bi-check-circle"></i> Aprobar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Articulo> articulosPendientes = new();
+    private Articulo? articuloSeleccionado;
+    private string comentario = string.Empty;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarArticulosPendientes();
+    }
+
+    private async Task CargarArticulosPendientes()
+    {
+        articulosPendientes = await ArticuloService.ListarPorEstado(EstadoArticulo.Pendiente);
+    }
+
+    private async Task VerDetalle(int articuloId)
+    {
+        articuloSeleccionado = await ArticuloService.GetArticuloCompleto(articuloId);
+        comentario = string.Empty;
+        errorMessage = string.Empty;
+    }
+
+    private void CerrarModal()
+    {
+        articuloSeleccionado = null;
+        comentario = string.Empty;
+        errorMessage = string.Empty;
+    }
+
+    private async Task Aprobar()
+    {
+        if (articuloSeleccionado == null) return;
+
+        var resultado = await ArticuloService.CambiarEstado(
+            articuloSeleccionado.ArticuloId, 
+            EstadoArticulo.Aprobado, 
+            comentario
+        );
+
+        if (resultado != null)
+        {
+            await CargarArticulosPendientes();
+            CerrarModal();
+        }
+        else
+        {
+            errorMessage = "Error al aprobar el artículo";
+        }
+    }
+
+    private async Task Rechazar()
+    {
+        if (articuloSeleccionado == null) return;
+
+        var resultado = await ArticuloService.CambiarEstado(
+            articuloSeleccionado.ArticuloId, 
+            EstadoArticulo.Rechazado, 
+            comentario
+        );
+
+        if (resultado != null)
+        {
+            await CargarArticulosPendientes();
+            CerrarModal();
+        }
+        else
+        {
+            errorMessage = "Error al rechazar el artículo";
+        }
+    }
+}

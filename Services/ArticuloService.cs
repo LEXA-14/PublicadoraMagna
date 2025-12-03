@@ -66,7 +66,17 @@ public class ArticuloService(IDbContextFactory<ApplicationDbContext> dbFactory, 
         return await contexto.SaveChangesAsync() > 0;
     }
 
-    
+    public async Task<List<Articulo>> ListarPorEstado(EstadoArticulo estado)
+    {
+         using var contexto = await dbFactory.CreateDbContextAsync();
+
+        return await contexto.Articulos.Include(a => a.Categoria)
+            .Include(a => a.Institucion)
+            .Include(a => a.Periodista)
+            .Where(a => a.Estado == estado)
+            .OrderByDescending(a => a.FechaEnvio)
+            .ToListAsync();
+            }
 
     public async Task<ArticuloServicioPromocionales> AgregarServicio(int articuloId, ArticuloServicioPromocionales servicio)
     {
@@ -104,7 +114,6 @@ public class ArticuloService(IDbContextFactory<ApplicationDbContext> dbFactory, 
     {
         await using var contexto = await dbFactory.CreateDbContextAsync();
         articulo.FechaCreacion = DateTime.Now;
-        articulo.Estado = EstadoArticulo.Borrador;
         contexto.Articulos.Add(articulo);
         return await contexto.SaveChangesAsync() > 0;
     }
