@@ -7,7 +7,7 @@ public class Articulo
         [Key]
         public int ArticuloId { get; set; }
         public string Titulo { get; set; } = string.Empty;
-        public string Resumen { get; set; }
+        public string? Resumen { get; set; }
         public string Contenido { get; set; }           
 
         public int? InstitucionId { get; set; }       

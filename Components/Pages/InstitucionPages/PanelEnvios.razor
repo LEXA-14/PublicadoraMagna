@@ -1,0 +1,170 @@
+﻿@page "/institucion/encargos"
+@inject EncargoArticuloService EncargoService
+@inject ArticuloService ArticuloService
+@rendermode InteractiveServer
+
+<h3>Encargos Recibidos</h3>
+
+@if (encargosRecibidos == null)
+{
+    <p>Cargando encargos...</p>
+}
+else if (!encargosRecibidos.Any())
+{
+    <div class="alert alert-info">No hay encargos enviados por periodistas.</div>
+}
+else
+{
+    <div class="row">
+        @foreach (var encargo in encargosRecibidos)
+        {
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-light">
+                        <h6>@encargo.TituloSugerido</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Periodista:</strong> @encargo.Periodista?.Nombres</p>
+                        <p><strong>Categoría:</strong> @encargo.Categoria?.Nombre</p>
+                        <p>
+                            <strong>Servicios Promocionales:</strong>
+                            @if (encargo.ServiciosPromocionales?.Any() == true)
+                            {
+                                @string.Join(", ", encargo.ServiciosPromocionales.Select(s => s.ServicioPromocional?.Nombre))
+                            }
+                            else
+                            {
+                                <span>Sin servicios</span>
+                            }
+                        </p>
+                        <div class="border p-2 bg-light">
+                            <p><strong>Estado:</strong> @encargo.Estado</p>
+                            @if (encargo.Estado == EstadoArticulo.Rechazado && !string.IsNullOrWhiteSpace(encargo.ComentarioRechazo))
+                            {
+                                <p><strong>Motivo del rechazo:</strong> @encargo.ComentarioRechazo</p>
+                            }
+                            </div>
+                        <p><strong>Contenido del artículo:</strong></p>
+                       <div class="border p-2 bg-light" style="white-space: pre-wrap;">
+                        @encargo.Articulo?.Contenido
+                     </div>
+                        
+                    </div>
+                    <div class="card-footer d-flex justify-content-between">
+                        <button class="btn btn-success btn-sm" @onclick="() => AbrirModalAceptar(encargo)">Aceptar</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => AbrirModalRechazar(encargo)">Rechazar</button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@if (encargoSeleccionado != null && aceptarModal)
+{
+    <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Aceptar Encargo: @encargoSeleccionado.TituloSugerido</h5>
+                    <button class="btn-close" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Deseas aceptar este artículo y marcarlo como aprobado?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                    <button class="btn btn-success" @onclick="AceptarArticulo">Aceptar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (encargoSeleccionado != null && rechazarModal)
+{
+    <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Rechazar Encargo: @encargoSeleccionado.TituloSugerido</h5>
+                    <button class="btn-close" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body">
+                    <label>Comentario de rechazo:</label>
+                    <textarea class="form-control" rows="3" @bind="comentarioRechazo"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                    <button class="btn btn-danger" @onclick="RechazarArticulo">Rechazar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<EncargoArticulo> encargosRecibidos = new();
+    private EncargoArticulo? encargoSeleccionado;
+    private bool aceptarModal = false;
+    private bool rechazarModal = false;
+    private string comentarioRechazo = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarEncargos();
+    }
+
+    private async Task CargarEncargos()
+    {
+        // Solo encargos enviados por periodistas y pendientes
+        encargosRecibidos = await EncargoService.GetLista(e =>
+            e.Estado == EstadoArticulo.Enviado && e.Articulo != null);
+    }
+
+    private void AbrirModalAceptar(EncargoArticulo encargo)
+    {
+        encargoSeleccionado = encargo;
+        aceptarModal = true;
+        rechazarModal = false;
+    }
+
+    private void AbrirModalRechazar(EncargoArticulo encargo)
+    {
+        encargoSeleccionado = encargo;
+        aceptarModal = false;
+        rechazarModal = true;
+        comentarioRechazo = string.Empty;
+    }
+
+    private void CerrarModal()
+    {
+        encargoSeleccionado = null;
+        aceptarModal = false;
+        rechazarModal = false;
+        comentarioRechazo = string.Empty;
+    }
+
+    private async Task AceptarArticulo()
+    {
+        if (encargoSeleccionado == null) return;
+
+        encargoSeleccionado.Estado = EstadoArticulo.Aprobado;
+        await EncargoService.Modificar(encargoSeleccionado);
+
+        await CargarEncargos();
+        CerrarModal();
+    }
+
+    private async Task RechazarArticulo()
+    {
+        if (encargoSeleccionado == null) return;
+
+        encargoSeleccionado.Estado = EstadoArticulo.Rechazado;
+        encargoSeleccionado.ComentarioRechazo = comentarioRechazo;
+
+        await EncargoService.Modificar(encargoSeleccionado);
+        await CargarEncargos();
+        CerrarModal();
+    }
+}

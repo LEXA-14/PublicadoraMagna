@@ -385,7 +385,7 @@
         {
             encargo.InstitucionId = institucionIdActual;
             encargo.FechaCreacion = DateTime.Now;
-            encargo.Estado = EstadoArticulo.Borrador;
+            encargo.Estado = EstadoArticulo.Pendiente;
             
             var guardado = await EncargoService.Guardar(encargo);
 

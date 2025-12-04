@@ -31,7 +31,7 @@ public class EncargoArticuloService(IDbContextFactory<ApplicationDbContext> dbFa
         return await contexto.SaveChangesAsync() > 0;
     }
 
-    private async Task<bool> Modificar(EncargoArticulo encargo)
+    public async Task<bool> Modificar(EncargoArticulo encargo)
     {
         if (string.IsNullOrWhiteSpace(encargo.TituloSugerido) || encargo.CategoriaId <= 0 || encargo.PeriodistaId <= 0) return false;
 

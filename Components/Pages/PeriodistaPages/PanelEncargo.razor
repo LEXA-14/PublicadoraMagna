@@ -1,0 +1,209 @@
+﻿@page "/periodista/encargos"
+@inject EncargoArticuloService EncargoService
+@inject ArticuloService ArticuloService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@rendermode InteractiveServer
+
+<h3>Mis Encargos</h3>
+
+@if (encargosPendientes == null)
+{
+    <p>Cargando encargos...</p>
+}
+else if (!encargosPendientes.Any())
+{
+    <div class="alert alert-info">No tienes encargos pendientes.</div>
+}
+else
+{
+    <div class="row">
+        @foreach (var encargo in encargosPendientes)
+        {
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-info bg-opacity-10">
+                        <h6>@encargo.TituloSugerido</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Categoría:</strong> @encargo.Categoria?.Nombre</p>
+                        <p><strong>Descripción:</strong> @encargo.DescripcionEncargo</p>
+                        <p><strong>Institución:</strong> @encargo.Institucion?.Nombre</p>
+                        <p>
+                            <strong>Servicios promocionales:</strong>
+                            @if (encargo.ServiciosPromocionales.Any())
+                            {
+                                @string.Join(", ", encargo.ServiciosPromocionales.Select(s => s.ServicioPromocional?.Nombre ?? "N/A"))
+                            }
+                            else
+                            {
+                                <span>Sin servicios</span>
+                            }
+                        </p>
+                    </div>
+                    <div class="card-footer d-flex justify-content-between">
+                        <button class="btn btn-success btn-sm" @onclick="() => AbrirModalAceptar(encargo)">Aceptar</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => AbrirModalRechazar(encargo)">Rechazar</button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@if (encargoSeleccionado != null && aceptarModal)
+{
+    <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Crear Artículo para: @encargoSeleccionado.TituloSugerido</h5>
+                    <button class="btn-close" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label>Título</label>
+                        <input class="form-control" @bind="nuevoArticulo.Titulo" />
+                    </div>
+                    <div class="mb-3">
+                        <label>Categoría</label>
+                        <input class="form-control" value="@encargoSeleccionado.Categoria?.Nombre" disabled />
+                    </div>
+                    <div class="mb-3">
+                        <label>Servicios promocionales</label>
+                        <ul>
+                            @foreach (var s in encargoSeleccionado.ServiciosPromocionales)
+                            {
+                                <li>@s.ServicioPromocional?.Nombre - @s.PrecioAplicado.ToString("C")</li>
+                            }
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                        <label>Contenido</label>
+                        <textarea class="form-control" rows="6" @bind="nuevoArticulo.Contenido"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                    <button class="btn btn-primary" @onclick="GuardarYEnviarArticulo">Enviar a Institución</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (encargoSeleccionado != null && rechazarModal)
+{
+    <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Rechazar encargo: @encargoSeleccionado.TituloSugerido</h5>
+                    <button class="btn-close" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body">
+                    <label>Comentario de rechazo:</label>
+                    <textarea class="form-control" rows="3" @bind="comentarioRechazo"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                    <button class="btn btn-danger" @onclick="RechazarEncargo">Rechazar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<EncargoArticulo> encargosPendientes = new();
+    private EncargoArticulo? encargoSeleccionado;
+    private bool aceptarModal = false;
+    private bool rechazarModal = false;
+    private string comentarioRechazo = string.Empty;
+    private int periodistaId;
+
+    private Articulo nuevoArticulo = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+
+        if (user == null) return;
+
+        periodistaId = user.PeriodistaId ?? 0;
+
+        await CargarEncargos();
+    }
+
+    private async Task CargarEncargos()
+    {
+        encargosPendientes = await EncargoService.GetLista(e =>
+            e.Estado == EstadoArticulo.Pendiente && e.PeriodistaId == periodistaId);
+    }
+
+    private void AbrirModalAceptar(EncargoArticulo encargo)
+    {
+        encargoSeleccionado = encargo;
+        aceptarModal = true;
+        rechazarModal = false;
+
+        // Pre-cargar datos del artículo
+        nuevoArticulo = new Articulo
+        {
+            Titulo = encargo.TituloSugerido,
+            CategoriaId = encargo.CategoriaId, // Solo ID
+            PeriodistaId = encargo.PeriodistaId,
+            InstitucionId = encargo.InstitucionId,
+            ServiciosPromocionales = encargo.ServiciosPromocionales
+                                    .Select(s => new ArticuloServicioPromocionales
+                                    {
+                                        ServicioPromocionalId = s.ServicioPromocionalId,
+                                        PrecioAplicado = s.PrecioAplicado
+                                    }).ToList()
+        };
+    }
+
+    private void AbrirModalRechazar(EncargoArticulo encargo)
+    {
+        encargoSeleccionado = encargo;
+        rechazarModal = true;
+        aceptarModal = false;
+        comentarioRechazo = string.Empty;
+    }
+
+    private void CerrarModal()
+    {
+        encargoSeleccionado = null;
+        aceptarModal = false;
+        rechazarModal = false;
+        comentarioRechazo = string.Empty;
+        nuevoArticulo = new Articulo();
+    }
+
+    private async Task RechazarEncargo()
+    {
+        if (encargoSeleccionado != null)
+        {
+            await EncargoService.ResponderEncargo(encargoSeleccionado.EncargoArticuloId, false, comentarioRechazo);
+            await CargarEncargos();
+            CerrarModal();
+        }
+    }
+
+    private async Task GuardarYEnviarArticulo()
+    {
+        if (encargoSeleccionado == null) return;
+
+        // Guardar el artículo sin enviar entidades completas
+        await ArticuloService.Guardar(nuevoArticulo);
+
+        // Enviar artículo a la institución
+        await EncargoService.EnviarArticuloAInstitucion(encargoSeleccionado.EncargoArticuloId, nuevoArticulo.ArticuloId);
+
+        await CargarEncargos();
+        CerrarModal();
+    }
+}
+
+

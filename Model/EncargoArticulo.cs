@@ -18,7 +18,7 @@ public class EncargoArticulo
     public int CategoriaId { get; set; }
     public Categoria Categoria { get; set; } = null!;
 
-
+    public string? ComentarioRechazo { get; set; }
     public List<EncargoServicioPromocional> ServiciosPromocionales { get; set; } = new();
 
 
