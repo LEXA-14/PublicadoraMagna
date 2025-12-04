@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PublicadoraMagna.Data;
 
@@ -11,9 +12,11 @@ using PublicadoraMagna.Data;
 namespace PublicadoraMagna.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251204014158_Encargo")]
+    partial class Encargo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -485,43 +488,6 @@ namespace PublicadoraMagna.Migrations
                     b.ToTable("EncargoArticulos");
                 });
 
-            modelBuilder.Entity("PublicadoraMagna.Model.EncargoServicioPromocional", b =>
-                {
-                    b.Property<int>("EncargoServicioPromocionalId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EncargoServicioPromocionalId"));
-
-                    b.Property<string>("Descripcion")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("EncargoArticuloId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("FechaAplicacion")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("PrecioAplicado")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ServicioPromocionalId")
-                        .HasColumnType("int");
-
-                    b.HasKey("EncargoServicioPromocionalId");
-
-                    b.HasIndex("EncargoArticuloId");
-
-                    b.HasIndex("ServicioPromocionalId");
-
-                    b.ToTable("EncargoServicioPromocional");
-                });
-
             modelBuilder.Entity("PublicadoraMagna.Model.Institucion", b =>
                 {
                     b.Property<int>("InstitucionId")
@@ -662,6 +628,9 @@ namespace PublicadoraMagna.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("EncargoArticuloId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("datetime2");
 
@@ -674,6 +643,8 @@ namespace PublicadoraMagna.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("ServicioPromocionalId");
+
+                    b.HasIndex("EncargoArticuloId");
 
                     b.ToTable("ServiciosPromocionales");
                 });
@@ -910,25 +881,6 @@ namespace PublicadoraMagna.Migrations
                     b.Navigation("Periodista");
                 });
 
-            modelBuilder.Entity("PublicadoraMagna.Model.EncargoServicioPromocional", b =>
-                {
-                    b.HasOne("PublicadoraMagna.Model.EncargoArticulo", "EncargoArticulo")
-                        .WithMany("ServiciosPromocionales")
-                        .HasForeignKey("EncargoArticuloId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PublicadoraMagna.Model.ServicioPromocional", "ServicioPromocional")
-                        .WithMany()
-                        .HasForeignKey("ServicioPromocionalId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("EncargoArticulo");
-
-                    b.Navigation("ServicioPromocional");
-                });
-
             modelBuilder.Entity("PublicadoraMagna.Model.PagoInstitucion", b =>
                 {
                     b.HasOne("PublicadoraMagna.Model.Institucion", "Institucion")
@@ -949,6 +901,13 @@ namespace PublicadoraMagna.Migrations
                         .IsRequired();
 
                     b.Navigation("Periodista");
+                });
+
+            modelBuilder.Entity("PublicadoraMagna.Model.ServicioPromocional", b =>
+                {
+                    b.HasOne("PublicadoraMagna.Model.EncargoArticulo", null)
+                        .WithMany("ServiciosPromocionales")
+                        .HasForeignKey("EncargoArticuloId");
                 });
 
             modelBuilder.Entity("PublicadoraMagna.Model.Articulo", b =>

@@ -63,6 +63,7 @@ public class Program
         builder.Services.AddScoped<ServicioPromocionalService>();
         builder.Services.AddScoped<PagoService>();
         builder.Services.AddScoped<DataSeederService>();
+        builder.Services.AddScoped<EncargoArticuloService>();
 
 
         builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();

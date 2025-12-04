@@ -1,0 +1,406 @@
+@page "/institucion/encargos/crear"
+@* @attribute [Authorize(Roles = "AdminInstitucion,RedactorInstitucion")] *@
+@using Microsoft.AspNetCore.Identity
+@inject EncargoArticuloService EncargoService
+@inject CategoriaService CategoriaService
+@inject PeriodistaService PeriodistaService
+@inject ServicioPromocionalService ServicioPromocionalService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Crear Encargo</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            
+            <h3 class="mb-4">
+                <i class="bi bi-file-earmark-text"></i> Crear Encargo de Artículo
+            </h3>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @errorMessage
+                    <button type="button" class="btn-close" @onclick="@(() => errorMessage = string.Empty)"></button>
+                </div>
+            }
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary bg-opacity-10 p-2 rounded me-3">
+                            <i class="bi bi-info-circle text-primary fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">Datos del Encargo</h5>
+                            <small class="text-muted">Información que recibirá el periodista</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Título Sugerido <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" @bind="encargo.TituloSugerido" placeholder="Título del artículo" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Descripción del Encargo</label>
+                        <textarea class="form-control" rows="4" @bind="encargo.DescripcionEncargo" 
+                                  placeholder="Describe lo que necesitas en el artículo, enfoque, puntos a cubrir, etc."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Categoría <span class="text-danger">*</span></label>
+                        <select class="form-select" @bind="selectedCategoriaId">
+                            <option value="0">-- Seleccione una categoría --</option>
+                            @foreach (var categoria in listaCategorias)
+                            {
+                                <option value="@categoria.CategoriaId">@categoria.Nombre (RD$ @categoria.PrecioBase.ToString("N0"))</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Periodista <span class="text-danger">*</span></label>
+                        <select class="form-select" @bind="selectedPeriodistaId">
+                            <option value="0">-- Seleccione un periodista --</option>
+                            @foreach (var periodista in listaPeriodistas.Where(p => p.EsActivo))
+                            {
+                                <option value="@periodista.PeriodistaId">@periodista.Nombres (Tarifa: RD$ @periodista.TarifaBase.ToString("N0"))</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-warning bg-opacity-10 p-2 rounded me-3">
+                            <i class="bi bi-megaphone text-warning fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">Servicios Promocionales</h5>
+                            <small class="text-muted">Opcional - Servicios adicionales para el artículo</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Servicio</label>
+                            <select class="form-select" @bind="servicioSeleccionadoId">
+                                <option value="0">Seleccione un servicio</option>
+                                @foreach (var servicio in listaServiciosPromocionales)
+                                {
+                                    <option value="@servicio.ServicioPromocionalId">@servicio.Nombre - RD$ @servicio.Precio.ToString("N0")</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="button" class="btn btn-primary w-100" @onclick="AgregarServicio">
+                                <i class="bi bi-plus-circle"></i> Agregar
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (encargo.ServiciosPromocionales.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Servicio</th>
+                                        <th class="text-end">Precio</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var detalle in encargo.ServiciosPromocionales)
+                                    {
+                                        var servicio = listaServiciosPromocionales.FirstOrDefault(s => s.ServicioPromocionalId == detalle.ServicioPromocionalId);
+                                        <tr>
+                                            <td>@(servicio?.Nombre ?? "N/A")</td>
+                                            <td class="text-end">RD$ @detalle.PrecioAplicado.ToString("N0")</td>
+                                            <td class="text-end">
+                                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => EliminarServicio(detalle)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+            
+            <div class="card mb-4 sticky-top" style="top: 20px;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-success bg-opacity-10 p-2 rounded me-3">
+                            <i class="bi bi-currency-dollar text-success fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">Resumen de Costos</h5>
+                        </div>
+                    </div>
+
+                    <div class="border-bottom pb-2 mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <i class="bi bi-tag"></i>
+                                <span class="ms-1">Precio Base</span>
+                            </div>
+                            <strong class="@(precioBase > 0 ? "text-dark" : "text-muted")">
+                                @(precioBase > 0 ? $"RD$ {precioBase:N0}" : "$0.00")
+                            </strong>
+                        </div>
+                        @if (precioBase == 0)
+                        {
+                            <small class="text-muted d-block">No seleccionada</small>
+                        }
+                        else
+                        {
+                            <small class="text-muted d-block">@categoriaNombre</small>
+                        }
+                    </div>
+
+                    @if (totalServicios > 0)
+                    {
+                        <div class="border-bottom pb-2 mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-megaphone"></i>
+                                    <span class="ms-1">Servicios Promocionales</span>
+                                </div>
+                                <strong>RD$ @totalServicios.ToString("N0")</strong>
+                            </div>
+                        </div>
+                    }
+
+                    @if (tarifaPeriodista > 0)
+                    {
+                        <div class="border-bottom pb-2 mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-person"></i>
+                                    <span class="ms-1">Pago Periodista</span>
+                                </div>
+                                <strong>RD$ @tarifaPeriodista.ToString("N0")</strong>
+                            </div>
+                            <small class="text-muted d-block">@nombrePeriodista</small>
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            <i class="bi bi-calculator"></i>
+                            <span class="ms-1 fw-bold">Total a Pagar</span>
+                        </div>
+                        <h4 class="mb-0 text-primary">RD$ @((precioBase + totalServicios + tarifaPeriodista).ToString("N0"))</h4>
+                    </div>
+
+                    <hr />
+
+                    <div class="alert alert-info py-2 mb-0">
+                        <small>
+                            <i class="bi bi-info-circle"></i>
+                            El periodista debe aceptar el encargo antes de comenzar
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="mb-3">Acciones</h6>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-success" @onclick="EnviarEncargo">
+                            <i class="bi bi-send"></i> Enviar Encargo
+                        </button>
+                        <a href="/institucion/encargos" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancelar
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    private EncargoArticulo encargo = new();
+    private List<Categoria> listaCategorias = new();
+    private List<Periodista> listaPeriodistas = new();
+    private List<ServicioPromocional> listaServiciosPromocionales = new();
+    
+    private string errorMessage = string.Empty;
+    private int servicioSeleccionadoId = 0;
+    private int institucionIdActual = 0;
+    
+    private decimal precioBase;
+    private decimal totalServicios;
+    private decimal tarifaPeriodista;
+    private string categoriaNombre = string.Empty;
+    private string nombrePeriodista = string.Empty;
+
+    private int selectedCategoriaId
+    {
+        get => encargo.CategoriaId;
+        set
+        {
+            encargo.CategoriaId = value;
+            RecalcularTotales();
+        }
+    }
+
+    private int selectedPeriodistaId
+    {
+        get => encargo.PeriodistaId;
+        set
+        {
+            encargo.PeriodistaId = value;
+            RecalcularTotales();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        listaCategorias = await CategoriaService.Listar();
+        listaPeriodistas = await PeriodistaService.Listar();
+        listaServiciosPromocionales = await ServicioPromocionalService.Listar();
+
+        if (AuthenticationStateProvider != null)
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var institucionIdClaim = user.FindFirst("InstitucionId");
+                if (institucionIdClaim != null && int.TryParse(institucionIdClaim.Value, out int instId))
+                {
+                    institucionIdActual = instId;
+                }
+                else
+                {
+                    var email = user.FindFirst(ClaimTypes.Email)?.Value;
+                    if (!string.IsNullOrEmpty(email))
+                    {
+                        var appUser = await UserManager.FindByEmailAsync(email);
+                        if (appUser?.InstitucionId != null)
+                        {
+                            institucionIdActual = appUser.InstitucionId.Value;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void AgregarServicio()
+    {
+        if (servicioSeleccionadoId <= 0)
+        {
+            errorMessage = "Debe seleccionar un servicio";
+            return;
+        }
+
+        var servicio = listaServiciosPromocionales.FirstOrDefault(s => s.ServicioPromocionalId == servicioSeleccionadoId);
+        if (servicio == null) return;
+
+        if (encargo.ServiciosPromocionales.Any(s => s.ServicioPromocionalId == servicioSeleccionadoId))
+        {
+            errorMessage = "Este servicio ya ha sido agregado";
+            return;
+        }
+
+        encargo.ServiciosPromocionales.Add(new EncargoServicioPromocional
+        {
+            ServicioPromocionalId = servicioSeleccionadoId,
+            PrecioAplicado = servicio.Precio,
+            FechaAplicacion = DateTime.Now
+        });
+
+        servicioSeleccionadoId = 0;
+        errorMessage = string.Empty;
+        RecalcularTotales();
+    }
+
+    private void EliminarServicio(EncargoServicioPromocional detalle)
+    {
+        encargo.ServiciosPromocionales.Remove(detalle);
+        RecalcularTotales();
+    }
+
+    private void RecalcularTotales()
+    {
+        var categoria = listaCategorias.FirstOrDefault(c => c.CategoriaId == encargo.CategoriaId);
+        precioBase = categoria?.PrecioBase ?? 0;
+        categoriaNombre = categoria?.Nombre ?? "Sin categoría";
+
+        totalServicios = encargo.ServiciosPromocionales.Sum(s => s.PrecioAplicado);
+
+        var periodista = listaPeriodistas.FirstOrDefault(p => p.PeriodistaId == encargo.PeriodistaId);
+        tarifaPeriodista = periodista?.TarifaBase ?? 0;
+        nombrePeriodista = periodista?.Nombres ?? string.Empty;
+    }
+
+    private async Task EnviarEncargo()
+    {
+        if (string.IsNullOrWhiteSpace(encargo.TituloSugerido))
+        {
+            errorMessage = "El título es requerido";
+            return;
+        }
+
+        if (encargo.CategoriaId == 0)
+        {
+            errorMessage = "Debe seleccionar una categoría";
+            return;
+        }
+
+        if (encargo.PeriodistaId == 0)
+        {
+            errorMessage = "Debe seleccionar un periodista";
+            return;
+        }
+
+        if (institucionIdActual == 0)
+        {
+            errorMessage = "Error: No se pudo identificar tu institución";
+            return;
+        }
+
+        try
+        {
+            encargo.InstitucionId = institucionIdActual;
+            encargo.FechaCreacion = DateTime.Now;
+            encargo.Estado = EstadoArticulo.Borrador;
+            
+            var guardado = await EncargoService.Guardar(encargo);
+
+            if (guardado)
+            {
+                NavigationManager.NavigateTo("/institucion/encargos");
+            }
+            else
+            {
+                errorMessage = "No se pudo crear el encargo";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+    }
+}

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PublicadoraMagna.Data;
 
@@ -11,9 +12,11 @@ using PublicadoraMagna.Data;
 namespace PublicadoraMagna.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251204023453_correction")]
+    partial class correction
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -330,6 +333,9 @@ namespace PublicadoraMagna.Migrations
                     b.Property<int>("ArticuloId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("EncargoArticuloId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("FechaAplicacion")
                         .HasColumnType("datetime2");
 
@@ -342,6 +348,8 @@ namespace PublicadoraMagna.Migrations
                     b.HasKey("ArticuloServicioPromocionalId");
 
                     b.HasIndex("ArticuloId");
+
+                    b.HasIndex("EncargoArticuloId");
 
                     b.HasIndex("ServicioPromocionalId");
 
@@ -483,43 +491,6 @@ namespace PublicadoraMagna.Migrations
                     b.HasIndex("PeriodistaId");
 
                     b.ToTable("EncargoArticulos");
-                });
-
-            modelBuilder.Entity("PublicadoraMagna.Model.EncargoServicioPromocional", b =>
-                {
-                    b.Property<int>("EncargoServicioPromocionalId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EncargoServicioPromocionalId"));
-
-                    b.Property<string>("Descripcion")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("EncargoArticuloId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("FechaAplicacion")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("PrecioAplicado")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ServicioPromocionalId")
-                        .HasColumnType("int");
-
-                    b.HasKey("EncargoServicioPromocionalId");
-
-                    b.HasIndex("EncargoArticuloId");
-
-                    b.HasIndex("ServicioPromocionalId");
-
-                    b.ToTable("EncargoServicioPromocional");
                 });
 
             modelBuilder.Entity("PublicadoraMagna.Model.Institucion", b =>
@@ -828,6 +799,10 @@ namespace PublicadoraMagna.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("PublicadoraMagna.Model.EncargoArticulo", null)
+                        .WithMany("ServiciosPromocionales")
+                        .HasForeignKey("EncargoArticuloId");
+
                     b.HasOne("PublicadoraMagna.Model.ServicioPromocional", "ServicioPromocional")
                         .WithMany()
                         .HasForeignKey("ServicioPromocionalId")
@@ -908,25 +883,6 @@ namespace PublicadoraMagna.Migrations
                     b.Navigation("Institucion");
 
                     b.Navigation("Periodista");
-                });
-
-            modelBuilder.Entity("PublicadoraMagna.Model.EncargoServicioPromocional", b =>
-                {
-                    b.HasOne("PublicadoraMagna.Model.EncargoArticulo", "EncargoArticulo")
-                        .WithMany("ServiciosPromocionales")
-                        .HasForeignKey("EncargoArticuloId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PublicadoraMagna.Model.ServicioPromocional", "ServicioPromocional")
-                        .WithMany()
-                        .HasForeignKey("ServicioPromocionalId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("EncargoArticulo");
-
-                    b.Navigation("ServicioPromocional");
                 });
 
             modelBuilder.Entity("PublicadoraMagna.Model.PagoInstitucion", b =>

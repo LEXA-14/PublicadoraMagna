@@ -18,6 +18,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<DetallePagoPeriodista> DetallesPagosPeriodistas { get; set; }
     public DbSet<ServicioPromocional> ServiciosPromocionales { get; set; }
 
+    public DbSet<EncargoArticulo>EncargoArticulos { get; set; }
+
+    public DbSet<EncargoServicioPromocional> EncargoServicioPromocional { get; set; }
+
 
     public DbSet<ArticuloServicioPromocionales> ArticuloServicioPromocional { get; set; }
 
@@ -207,6 +211,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(d => d.Monto)
                 .HasColumnType("decimal(18,2)");
         });
+
     }
 
 }

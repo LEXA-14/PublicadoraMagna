@@ -23,7 +23,7 @@ public class PeriodistaService(IDbContextFactory<ApplicationDbContext> dbFactory
         if (periodista.TarifaBase < 0)
             return false;
 
-        // Crear el periodista
+        
         periodista.FechaRegistro = DateTime.Now;
         periodista.EsActivo = true;
 

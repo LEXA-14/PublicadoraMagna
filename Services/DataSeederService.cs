@@ -39,6 +39,8 @@ public class DataSeederService
 
         // 6. Crear servicios promocionales de prueba
         await CrearServiciosPromocionales();
+
+ 
     }
 
     private async Task CrearRoles()
@@ -188,7 +190,7 @@ public class DataSeederService
             Console.WriteLine($"✅ {categorias.Count} categorías creadas");
         }
     }
-
+   
     private async Task CrearServiciosPromocionales()
     {
         if (!_context.ServiciosPromocionales.Any())
