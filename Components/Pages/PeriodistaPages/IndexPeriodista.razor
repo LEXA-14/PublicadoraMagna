@@ -1,0 +1,180 @@
+﻿@page "/periodista/dashboard"
+@using Microsoft.AspNetCore.Identity
+@inject EncargoArticuloService EncargoService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
+
+<PageTitle>Dashboard Periodista</PageTitle>
+
+<div class="container">
+    <div class="card shadow-lg">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title">Mis Encargos y Artículos</h5>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row mb-3">
+                <div class="col-3">
+                    <label><strong>Desde</strong></label>
+                    <InputDate class="form-control" @bind-Value="desde"></InputDate>
+                </div>
+
+                <div class="col-3">
+                    <label><strong>Hasta</strong></label>
+                    <InputDate class="form-control" @bind-Value="hasta"></InputDate>
+                </div>
+
+                <div class="col-3">
+                    <label><strong>Filtrar por</strong></label>
+                    <InputSelect class="form-select" @bind-Value="FiltroEstado">
+                        <option value="">Todos</option>
+                        @foreach (var estado in Enum.GetValues(typeof(EstadoArticulo)).Cast<EstadoArticulo>())
+                        {
+                            <option value="@estado">@estado</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="col-3">
+                    <label><strong>Búsqueda</strong></label>
+                    <div class="input-group">
+                        <input class="form-control" @bind="ValorBusqueda" placeholder="Título, Categoría o Tipo" />
+                        <button type="button" class="btn btn-outline-primary bi bi-search" @onclick="Buscar"></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Tipo</th>
+                            <th>Título</th>
+                            <th>Categoría</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Comentario</th>
+                            <th>Opciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var encargo in ListaEncargos)
+                        {
+                            <tr class="@EstadoStyle(encargo.Estado)">
+                                <td>@encargo.EncargoArticuloId</td>
+                                <td>@(encargo.Articulo != null ? "Artículo" : "Encargo")</td>
+                                <td>@encargo.TituloSugerido</td>
+                                <td>@encargo.Categoria?.Nombre</td>
+                                <td>@encargo.FechaCreacion.ToString("dd/MM/yyyy")</td>
+                                <td>@encargo.Estado</td>
+                                <td>
+                                    @if (encargo.Estado == EstadoArticulo.Rechazado)
+                                    {
+                                        <span class="text-danger">@encargo.ComentarioRechazo</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a href="/Periodista/Detalle/@encargo.EncargoArticuloId" class="btn btn-outline-primary bi bi-eye"></a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer d-flex justify-content-between">
+                <label>Total registros: @ListaEncargos.Count()</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<EncargoArticulo> ListaEncargos = new();
+    private string FiltroEstado = string.Empty;
+    private string ValorBusqueda = string.Empty;
+    private DateTime? desde = null;
+    private DateTime? hasta = null;
+
+    private string? userEmail;
+    private int periodistaIdActual;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            userEmail = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+            if (!string.IsNullOrEmpty(userEmail))
+            {
+                var appUser = await UserManager.FindByEmailAsync(userEmail);
+                if (appUser != null && appUser.PeriodistaId != null)
+                {
+                    periodistaIdActual = appUser.PeriodistaId.Value;
+                }
+            }
+        }
+
+        if (periodistaIdActual > 0)
+        {
+            ListaEncargos = await EncargoService.GetLista(e => e.PeriodistaId == periodistaIdActual);
+        }
+    }
+
+    private async Task Buscar()
+    {
+        if (periodistaIdActual == 0) return;
+
+        var prelista = await EncargoService.GetLista(e => e.PeriodistaId == periodistaIdActual);
+
+        // Filtrar por fechas
+        if (desde.HasValue && hasta.HasValue)
+        {
+            prelista = prelista.Where(e => e.FechaCreacion.Date >= desde.Value.Date && e.FechaCreacion.Date <= hasta.Value.Date).ToList();
+        }
+        else if (desde.HasValue)
+        {
+            prelista = prelista.Where(e => e.FechaCreacion.Date >= desde.Value.Date).ToList();
+        }
+        else if (hasta.HasValue)
+        {
+            prelista = prelista.Where(e => e.FechaCreacion.Date <= hasta.Value.Date).ToList();
+        }
+
+        // Filtrar por estado
+        if (!string.IsNullOrWhiteSpace(FiltroEstado))
+        {
+            if (Enum.TryParse<EstadoArticulo>(FiltroEstado, out var estado))
+            {
+                prelista = prelista.Where(e => e.Estado == estado).ToList();
+            }
+        }
+
+        // Búsqueda por título, categoría o tipo
+        if (!string.IsNullOrWhiteSpace(ValorBusqueda))
+        {
+            prelista = prelista.Where(e =>
+                (e.TituloSugerido?.Contains(ValorBusqueda, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (e.Categoria?.Nombre?.Contains(ValorBusqueda, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                ((e.Articulo != null ? "Artículo" : "Encargo").Contains(ValorBusqueda, StringComparison.OrdinalIgnoreCase))
+            ).ToList();
+        }
+
+        ListaEncargos = prelista;
+    }
+
+    private string EstadoStyle(EstadoArticulo estado) => estado switch
+    {
+        EstadoArticulo.Rechazado => "table-danger",
+        EstadoArticulo.Aprobado => "table-success",
+        EstadoArticulo.Pendiente => "table-warning",
+        EstadoArticulo.Borrador => "table-secondary",
+        _ => ""
+    };
+}

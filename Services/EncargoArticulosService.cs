@@ -153,6 +153,7 @@ public class EncargoArticuloService(IDbContextFactory<ApplicationDbContext> dbFa
         await using var contexto = await dbFactory.CreateDbContextAsync();
 
         return await contexto.EncargoArticulos
+            .Include(e=>e.Articulo)
             .Include(e => e.Institucion)
             .Include(e => e.Periodista)
             .Include(e => e.Categoria)
