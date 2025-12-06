@@ -106,6 +106,8 @@ public class ArticuloService(IDbContextFactory<ApplicationDbContext> dbFactory, 
         return await contexto.Articulos.Include(a => a.Categoria)
             .Include(a => a.Institucion)
             .Include(a => a.Periodista)
+            .Include(a=>a.ServiciosPromocionales)
+            .ThenInclude(asp=>asp.ServicioPromocional)
             .Where(a => a.Estado == estado)
             .OrderByDescending(a => a.FechaEnvio)
             .ToListAsync();

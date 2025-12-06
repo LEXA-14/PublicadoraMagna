@@ -31,7 +31,15 @@ public class PagoService(IDbContextFactory<ApplicationDbContext> dbFactory)
        
         if (!articulo.InstitucionId.HasValue) return;
 
-       
+        var detalleExistente = await contexto.DetallesPagosInstitucion
+      .AnyAsync(d => d.ArticuloId == articulo.ArticuloId);
+
+        if (detalleExistente)
+        {
+            return;
+        }
+
+
         decimal precioBase = articulo.Categoria?.PrecioBase ?? 0m;
         decimal totalServicios = articulo.ServiciosPromocionales?.Sum(s => s.PrecioAplicado) ?? 0m;
         decimal tarifaPeriodista = articulo.Periodista?.TarifaBase ?? 0m;
@@ -79,6 +87,13 @@ public class PagoService(IDbContextFactory<ApplicationDbContext> dbFactory)
     {
         
         if (!articulo.PeriodistaId.HasValue) return;
+        var detalleExistente = await contexto.DetallesPagosPeriodistas
+       .AnyAsync(d => d.ArticuloId == articulo.ArticuloId);
+
+        if (detalleExistente)
+        {
+            return;
+        }
 
         decimal tarifaPeriodista = articulo.Periodista?.TarifaBase ?? 0m;
 
@@ -123,20 +138,31 @@ public class PagoService(IDbContextFactory<ApplicationDbContext> dbFactory)
     public async Task<bool> MarcarPagoInstitucionComoPagado(int articuloId, string numeroTransaccion)
     {
         await using var contexto = await dbFactory.CreateDbContextAsync();
+        
         var detallePago = await contexto.DetallesPagosInstitucion
             .Include(d => d.Pago)
             .FirstOrDefaultAsync(d => d.ArticuloId == articuloId && d.Pago.Estado == "Pendiente");
-
+       
         if (detallePago == null) return false;
 
-        var pagoMaestro = await contexto.PagosInstitucion
-            .FirstOrDefaultAsync(p => p.PagoId == detallePago.PagoInstitucionId);
+        var pagoMaestro = detallePago.Pago;
 
         if (pagoMaestro == null) return false;
         pagoMaestro.Estado = "Pagado";
-        pagoMaestro.FechaPago = DateTime.Now; 
+        pagoMaestro.FechaPago = DateTime.Now;
 
         contexto.PagosInstitucion.Update(pagoMaestro);
+        var articulo = await contexto.Articulos
+      .FirstOrDefaultAsync(a => a.ArticuloId == articuloId);
+
+        if (articulo != null)
+        {
+            Console.WriteLine($"Actualizando artículo {articulo.ArticuloId} a estado Pagado");
+            articulo.Estado = EstadoArticulo.Pagado;
+            contexto.Articulos.Update(articulo);
+        }
         return await contexto.SaveChangesAsync() > 0;
     }
+
+
 }

@@ -34,37 +34,17 @@
     }
     .stat-icon.warning {
         background: #fff3e0;
-        color: #f57c00;
-    }
-    .stat-icon.info {
-        background: #e3f2fd;
-        color: #1976d2;
+        color: #e65100;
     }
     .stat-icon.success {
         background: #e8f5e9;
         color: #2e7d32;
-    }
-    .order-card:hover {
-        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-        transform: translateY(-2px);
-        transition: all 0.3s ease;
-    }
-    .btn-pagar {
-        background: #f57c00;
-        border: none;
-        color: white;
-    }
-    .btn-pagar:hover {
-        background: #e65100;
-        color: white;
     }
     .badge-pendiente {
         background: #fff3e0;
         color: #f57c00;
     }
 </style>
-
-<!-- Page Header -->
 <div class="page-header">
     <div class="container">
         <div class="d-flex justify-content-between align-items-center">
@@ -83,8 +63,6 @@
         </div>
     </div>
 </div>
-
-<!-- Main Content -->
 <div class="container py-4">
     @if (!string.IsNullOrEmpty(mensajeError))
     {
@@ -94,7 +72,7 @@
         </div>
     }
 
-    <!-- Stats Cards -->
+    
     <div class="row g-3 mb-4">
         <div class="col-md-3">
             <div class="card stat-card primary h-100 border-0 shadow-sm">
@@ -120,43 +98,34 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card h-100 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="stat-icon info">
-                        <i class="fas fa-spinner"></i>
-                    </div>
-                    <small class="text-muted d-block mb-2">En Proceso</small>
-                    <h3 class="mb-1">RD$ 0.00</h3>
-                    <small class="text-muted">0 artículos</small>
-                </div>
-            </div>
-        </div>
+       
         <div class="col-md-3">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
                     <div class="stat-icon success">
                         <i class="fas fa-check-circle"></i>
                     </div>
-                    <small class="text-muted d-block mb-2">Completados</small>
-                    <h3 class="mb-1">RD$ 0.00</h3>
-                    <small class="text-muted">0 artículos</small>
+                    <small class="text-muted d-block mb-2">Pagados</small>
+                    <h3 class="mb-1">RD$@articulosPagados.Sum(a=>CalcularTotal(a)).ToString("N2")</h3>
+                    <small class="text-muted">@articulosPagados.Count artículos</small>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Search Section -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <h5 class="card-title mb-3">Órdenes de Artículos</h5>
-            
             <div class="input-group mb-3">
                 <span class="input-group-text bg-white">
                     <i class="fas fa-search text-muted"></i>
                 </span>
-                <input type="text" class="form-control border-start-0" @bind="filtroTexto" @bind:event="oninput"
+                <input type="text" class="form-control border-start-0" @bind="filtroTexto"
                        placeholder="Buscar por título, orden o periodista...">
+                <button class="btn btn-primary bi bi-search" type="button" @onclick="AplicarFiltros"
+                        style="background-color: #e65100; border-color: #e65100;">
+                    
+                    <i class="fas fa-search"></i>
+                </button>
             </div>
 
             <ul class="nav nav-pills">
@@ -166,16 +135,11 @@
                         Todos
                     </button>
                 </li>
+                
                 <li class="nav-item">
-                    <button class="nav-link @(filtroEstado == "proceso" ? "active" : "")" 
-                            @onclick='() => CambiarFiltro("proceso")'>
-                        En Proceso
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link @(filtroEstado == "completados" ? "active" : "")" 
-                            @onclick='() => CambiarFiltro("completados")'>
-                        Completados
+                    <button class="nav-link @(filtroEstado == "Pagado" ? "active" : "")" 
+                            @onclick='() => CambiarFiltro("Pagado")'>
+                        Pagados
                     </button>
                 </li>
                 <li class="nav-item">
@@ -188,7 +152,7 @@
         </div>
     </div>
 
-    <!-- Orders Grid -->
+  
     @if (cargando)
     {
         <div class="text-center py-5">
@@ -222,8 +186,9 @@
                                     <h6 class="mb-1 fw-bold">@articulo.Titulo</h6>
                                     <small class="text-muted">#@articulo.ArticuloId / @(articulo.Categoria?.Nombre ?? "Sin categoría")</small>
                                 </div>
-                                <span class="badge badge-pendiente">
-                                    <i class="fas fa-clock me-1"></i>Pendiente
+                                <span class="badge @(articulo.Estado == EstadoArticulo.Pagado ? "bg-success" : "badge-pendiente")">
+                                    <i class="fas @(articulo.Estado == EstadoArticulo.Pagado ? "fa-check-circle" : "fa-clock") me-1"></i>
+                                    @(articulo.Estado == EstadoArticulo.Pagado ? "Pagado" : "Pendiente")
                                 </span>
                             </div>
 
@@ -267,7 +232,7 @@
                                 <button class="btn btn-outline-secondary btn-sm" @onclick="() => MostrarDetalles(articulo)">
                                     <i class="fas fa-eye me-2"></i>Ver Detalles
                                 </button>
-                                <button class="btn btn-pagar btn-sm" @onclick="() => IrAPagar(articulo.ArticuloId)">
+                                <button class="btn btn-sm text-white" style="background-color: #e65100; border-color: #e65100;" @onclick="() => IrAPagar(articulo.ArticuloId)">
                                     <i class="fas fa-credit-card me-2"></i>Pagar
                                 </button>
                             </div>
@@ -354,7 +319,7 @@
                     <button type="button" class="btn btn-secondary" @onclick="CerrarModal">
                         Cerrar
                     </button>
-                    <button type="button" class="btn btn-primary" style="background: #f57c00; border: none;"
+                    <button type="button" class="btn btn-primary" style="background:#e65100; border: none;"
                             @onclick="() => IrAPagar(articuloSeleccionado.ArticuloId)">
                         <i class="fas fa-credit-card me-2"></i>
                         Proceder al Pago
@@ -366,15 +331,24 @@
 }
 
 @code {
+
+
+
+
+
+
+
     private List<Articulo> articulosPendientes = new();
     private List<Articulo> articulosFiltrados = new();
+
+    private List<Articulo> articulosPagados = new();
     private Articulo? articuloSeleccionado;
-    
+
     private string mensajeError = string.Empty;
     private string filtroTexto = string.Empty;
     private string filtroEstado = "todos";
     private bool cargando = true;
-    
+
     private int institucionIdActual = 0;
     private decimal totalGeneral = 0m;
     private decimal totalPendiente = 0m;
@@ -383,7 +357,6 @@
     {
         try
         {
-            // Obtener institución del usuario actual
             var authState = await AuthProvider.GetAuthenticationStateAsync();
             var user = authState.User;
 
@@ -422,14 +395,22 @@
 
     private async Task CargarArticulos()
     {
-        // Cargar artículos AprobadoEditor de esta institución
+
         articulosPendientes = await ArticuloService.ListarPorEstado(EstadoArticulo.AprobadoEditor);
-        
+
+
+
+        articulosPagados = await ArticuloService.ListarPorEstado(EstadoArticulo.Pagado);
+
         if (institucionIdActual > 0)
         {
             articulosPendientes = articulosPendientes
                 .Where(a => a.InstitucionId == institucionIdActual)
                 .ToList();
+
+            articulosPagados = articulosPagados
+             .Where(a => a.InstitucionId == institucionIdActual)
+             .ToList();
         }
 
         articulosFiltrados = articulosPendientes;
@@ -448,7 +429,7 @@
         var precioBase = articulo.Categoria?.PrecioBase ?? 0m;
         var servicios = articulo.ServiciosPromocionales?.Sum(s => s.PrecioAplicado) ?? 0m;
         var tarifaPeriodista = articulo.Periodista?.TarifaBase ?? 0m;
-        
+
         return precioBase + servicios + tarifaPeriodista;
     }
 
@@ -460,28 +441,37 @@
 
     private void AplicarFiltros()
     {
-        articulosFiltrados = articulosPendientes;
-
-        // Filtro por texto
-        if (!string.IsNullOrWhiteSpace(filtroTexto))
-        {
-            articulosFiltrados = articulosFiltrados.Where(a =>
-                a.Titulo.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) ||
-                a.ArticuloId.ToString().Contains(filtroTexto) ||
-                (a.Periodista?.Nombres.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) ?? false)
-            ).ToList();
-        }
-
-        // Filtro por estado (por ahora todos son pendientes)
-        if (filtroEstado == "pendientes")
-        {
-            articulosFiltrados = articulosPendientes;
-        }
-        else if (filtroEstado == "proceso" || filtroEstado == "completados")
-        {
-            articulosFiltrados = new List<Articulo>();
-        }
+    List<Articulo> listaBase;
+    
+ 
+    if (filtroEstado == "pendientes")
+    {
+        listaBase = articulosPendientes.ToList();
     }
+    else if (filtroEstado == "Pagado")
+    {
+        listaBase = articulosPagados.ToList();
+    }
+    else
+    {
+        
+        listaBase = articulosPendientes.Concat(articulosPagados).ToList();
+    }
+    if (!string.IsNullOrWhiteSpace(filtroTexto))
+    {
+        articulosFiltrados = listaBase.Where(a =>
+            a.Titulo.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) ||
+            a.ArticuloId.ToString().Contains(filtroTexto) ||
+            (a.Periodista?.Nombres.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) ?? false)
+        ).ToList();
+    }
+    else
+    {
+        articulosFiltrados = listaBase;
+    }
+}
+
+    
 
     private void MostrarDetalles(Articulo articulo)
     {

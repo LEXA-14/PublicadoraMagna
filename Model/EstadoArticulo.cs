@@ -9,5 +9,6 @@ public enum EstadoArticulo
     AprobadoInstitucion = 2, 
     AprobadoEditor = 3,
     Rechazado = 4,
-    Enviado = 5
+    Enviado = 5,
+    Pagado=6
 }

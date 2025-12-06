@@ -554,7 +554,7 @@
         categoriaNombre = categoria?.Nombre ?? "Sin categoría";
 
         totalServicios = articulo.ServiciosPromocionales.Sum(s => s.PrecioAplicado);
-        tarifaPeriodista = 0;
+      
     }
     private async Task Guardar(EstadoArticulo estado)
     {

@@ -313,9 +313,9 @@
         try
         {
             articulo = await ArticuloService.GetArticuloCompleto(ArticuloId);
-
             if (articulo != null)
             {
+               
                 CalcularTotales();
             }
         }
@@ -341,7 +341,6 @@
         itbis = subtotal * 0.18m;
         totalAPagar = subtotal + itbis;
     }
-
     private async Task ProcesarPago()
     {
         mensajeError = string.Empty;
@@ -350,6 +349,7 @@
         {
             return;
         }
+
         procesando = true;
 
         try
@@ -357,24 +357,24 @@
             await Task.Delay(3000);
             numeroTransaccion = $"TRX-{DateTime.Now:yyyyMMddHHmmss}-{new Random().Next(1000, 9999)}";
 
-            var pagoExitosoDb = await pagoService.MarcarPagoInstitucionComoPagado(ArticuloId, numeroTransaccion);
+            var pagoExitosoDb = await pagoService.MarcarPagoInstitucionComoPagado(ArticuloId, numeroTransaccion); 
             if (!pagoExitosoDb)
             {
-                mensajeError = "No se pudo procesar el pago";
+                mensajeError = "No se pudo procesar el pago. El artículo no tiene un pago pendiente registrado.";
+                return;
             }
-
             pagoExitoso = true;
         }
-        catch (Exception ex)
-        {
-            mensajeError = $"Error al procesar el pago: {ex.Message}";
-        }
-        finally
-        {
-            procesando = false;
-        }
+    catch (Exception ex)
+    {
+        mensajeError = $"Error al procesar el pago: {ex.Message}";
+        pagoExitoso = false;
     }
-
+    finally
+    {
+        procesando = false;
+    }
+}
     private bool ValidarFormulario()
     {
         if (string.IsNullOrWhiteSpace(numeroTarjeta) || numeroTarjeta.Replace(" ", "").Length < 15)
