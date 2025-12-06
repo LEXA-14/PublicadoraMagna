@@ -35,7 +35,7 @@ public class Articulo
 
         
         public decimal TotalPromocional => ServiciosPromocionales?.Sum(s => s.PrecioAplicado) ?? 0m;
-        public decimal TotalAPagar => (Categoria?.PrecioBase ?? 0m) + TotalPromocional;
+        public decimal TotalAPagar { get; set; }
     }
 
 

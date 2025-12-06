@@ -6,12 +6,10 @@ namespace PublicadoraMagna.Services;
 
 public class PagoService(IDbContextFactory<ApplicationDbContext> dbFactory)
 {
-   
-    public async Task ProcesarPagosPorAprobacion(int articuloId)
+    public async Task<bool> ProcesarPagosPorAprobacion(int articuloId)
     {
         await using var contexto = await dbFactory.CreateDbContextAsync();
 
-      
         var articulo = await contexto.Articulos
             .Include(a => a.Categoria)
             .Include(a => a.Institucion)
@@ -20,102 +18,125 @@ public class PagoService(IDbContextFactory<ApplicationDbContext> dbFactory)
                 .ThenInclude(asp => asp.ServicioPromocional)
             .FirstOrDefaultAsync(a => a.ArticuloId == articuloId);
 
-        if (articulo == null)
-            throw new Exception($"Artículo con ID {articuloId} no encontrado para el procesamiento de pagos.");
+        if (articulo == null) return false;
 
         await GenerarPagoInstitucion(articulo, contexto);
-
-      
         await GenerarPagoPeriodista(articulo, contexto);
 
-        await contexto.SaveChangesAsync();
+        return await contexto.SaveChangesAsync() > 0;
     }
 
     private async Task GenerarPagoInstitucion(Articulo articulo, ApplicationDbContext contexto)
     {
-      
-        decimal montoIngreso = articulo.TotalAPagar;
+       
+        if (!articulo.InstitucionId.HasValue) return;
 
-        if (articulo.InstitucionId.HasValue)
+       
+        decimal precioBase = articulo.Categoria?.PrecioBase ?? 0m;
+        decimal totalServicios = articulo.ServiciosPromocionales?.Sum(s => s.PrecioAplicado) ?? 0m;
+        decimal tarifaPeriodista = articulo.Periodista?.TarifaBase ?? 0m;
+
+       
+        decimal montoTotal = precioBase + totalServicios + tarifaPeriodista;
+
+        if (montoTotal <= 0) return;
+
+     
+        var pagoMaestro = await contexto.PagosInstitucion
+            .Include(p => p.DetallesPagos)
+            .FirstOrDefaultAsync(p =>
+                p.InstitucionId == articulo.InstitucionId.Value &&
+                p.Estado == "Pendiente" &&
+                p.FechaPago.Date == DateTime.Now.Date);
+
+        if (pagoMaestro == null)
         {
-          
-            var pagoMaestro = await contexto.PagosInstitucion
-                .FirstOrDefaultAsync(p => p.InstitucionId == articulo.InstitucionId.Value && p.Estado == "Pendiente" && p.FechaPago.Date == DateTime.Now.Date);
-
-            if (pagoMaestro == null)
+            pagoMaestro = new PagoInstitucion
             {
-                pagoMaestro = new PagoInstitucion
-                {
-                    InstitucionId = articulo.InstitucionId.Value,
-                    FechaPago = DateTime.Now,
-                    Monto = 0, 
-                    Estado = "Pendiente",
-                    DetallesPagos = new List<DetallePagoInstitucion>()
-                };
-                contexto.PagosInstitucion.Add(pagoMaestro);
-            }
-
-         
-            var detalle = new DetallePagoInstitucion
-            {
-                ArticuloId = articulo.ArticuloId,
-                Monto = montoIngreso,
-                PagoInstitucionId = pagoMaestro.PagoId 
+                InstitucionId = articulo.InstitucionId.Value,
+                FechaPago = DateTime.Now,
+                Monto = 0,
+                Estado = "Pendiente",
+                DetallesPagos = new List<DetallePagoInstitucion>()
             };
-
-            pagoMaestro.DetallesPagos.Add(detalle);
-            pagoMaestro.Monto += montoIngreso;
+            contexto.PagosInstitucion.Add(pagoMaestro);
+            await contexto.SaveChangesAsync(); 
         }
-    }
 
+     
+        var detalle = new DetallePagoInstitucion
+        {
+            ArticuloId = articulo.ArticuloId,
+            Monto = montoTotal,
+            PagoInstitucionId = pagoMaestro.PagoId
+        };
+
+        pagoMaestro.DetallesPagos.Add(detalle);
+        pagoMaestro.Monto += montoTotal;
+    }
 
     private async Task GenerarPagoPeriodista(Articulo articulo, ApplicationDbContext contexto)
     {
         
-        decimal montoEgreso = 0m;
+        if (!articulo.PeriodistaId.HasValue) return;
 
-       
-        if (articulo.PeriodistaId.HasValue)
+        decimal tarifaPeriodista = articulo.Periodista?.TarifaBase ?? 0m;
+
+        if (tarifaPeriodista <= 0) return;
+
+        int periodistaId = articulo.PeriodistaId.Value;
+
+        
+        var pagoMaestro = await contexto.PagosPeriodistas
+            .Include(p => p.Detalles)
+            .FirstOrDefaultAsync(p =>
+                p.PeriodistaId == periodistaId &&
+                p.Estado == "Pendiente" &&  
+                p.Fecha.Date == DateTime.Now.Date);
+
+        if (pagoMaestro == null)
         {
-            var tarifaBase = articulo.Periodista?.TarifaBase ?? 0m;
-
-           
-            if (articulo.EsLibre || articulo.InstitucionId.HasValue)
+            pagoMaestro = new PagoPeriodista
             {
-                montoEgreso = tarifaBase;
-            }
-        }
-
-        if (montoEgreso > 0)
-        {
-            int periodistaId = articulo.PeriodistaId!.Value;
-
-            
-            var pagoMaestro = await contexto.PagosPeriodistas
-                .FirstOrDefaultAsync(p => p.PeriodistaId == periodistaId && p.Fecha.Date == DateTime.Now.Date && p.Total < 0); 
-
-            if (pagoMaestro == null)
-            {
-                pagoMaestro = new PagoPeriodista
-                {
-                    PeriodistaId = periodistaId,
-                    Fecha = DateTime.Now,
-                    Total = 0,
-                    Detalles = new List<DetallePagoPeriodista>()
-                };
-                contexto.PagosPeriodistas.Add(pagoMaestro);
-            }
-
-            var detalle = new DetallePagoPeriodista
-            {
-                ArticuloId = articulo.ArticuloId,
-                Monto = montoEgreso,
-                PagoPeriodistaId = pagoMaestro.PagoPeriodistaId
+                PeriodistaId = periodistaId,
+                Fecha = DateTime.Now,
+                Total = 0,
+                Estado = "Pendiente", 
+                Detalles = new List<DetallePagoPeriodista>()
             };
-
-            pagoMaestro.Detalles.Add(detalle);
-            pagoMaestro.Total += montoEgreso; 
+            contexto.PagosPeriodistas.Add(pagoMaestro);
+            await contexto.SaveChangesAsync(); 
         }
+
+        
+        var detalle = new DetallePagoPeriodista
+        {
+            ArticuloId = articulo.ArticuloId,
+            Monto = tarifaPeriodista,
+            PagoPeriodistaId = pagoMaestro.PagoPeriodistaId
+        };
+
+        pagoMaestro.Detalles.Add(detalle);
+        pagoMaestro.Total += tarifaPeriodista;
+    }
+
+    public async Task<bool> MarcarPagoInstitucionComoPagado(int articuloId, string numeroTransaccion)
+    {
+        await using var contexto = await dbFactory.CreateDbContextAsync();
+        var detallePago = await contexto.DetallesPagosInstitucion
+            .Include(d => d.Pago)
+            .FirstOrDefaultAsync(d => d.ArticuloId == articuloId && d.Pago.Estado == "Pendiente");
+
+        if (detallePago == null) return false;
+
+        var pagoMaestro = await contexto.PagosInstitucion
+            .FirstOrDefaultAsync(p => p.PagoId == detallePago.PagoInstitucionId);
+
+        if (pagoMaestro == null) return false;
+        pagoMaestro.Estado = "Pagado";
+        pagoMaestro.FechaPago = DateTime.Now; 
+
+        contexto.PagosInstitucion.Update(pagoMaestro);
+        return await contexto.SaveChangesAsync() > 0;
     }
 }
-

@@ -104,23 +104,45 @@ public class EncargoArticuloService(IDbContextFactory<ApplicationDbContext> dbFa
         contexto.EncargoArticulos.Update(encargo);
         return await contexto.SaveChangesAsync() > 0;
     }
-
     public async Task<bool> ResponderArticuloInstitucion(int encargoId, bool aprueba, string? comentario = null)
     {
         await using var contexto = await dbFactory.CreateDbContextAsync();
 
-        var encargo = await contexto.EncargoArticulos.FindAsync(encargoId);
+        var encargo = await contexto.EncargoArticulos
+            .Include(e => e.Articulo)
+            .FirstOrDefaultAsync(e => e.EncargoArticuloId == encargoId);
+
         if (encargo == null) return false;
 
         encargo.FechaRespuestaInstitucion = DateTime.Now;
         encargo.ComentarioInstitucion = comentario;
-        encargo.Estado = aprueba
-            ? EstadoArticulo.Aprobado
-            : EstadoArticulo.Rechazado;
+
+        if (aprueba)
+        {
+            encargo.Estado = EstadoArticulo.AprobadoInstitucion;
+
+            if (encargo.ArticuloId.HasValue && encargo.Articulo != null)
+            {
+                encargo.Articulo.Estado = EstadoArticulo.AprobadoInstitucion;
+                encargo.Articulo.FechaAprobacion = DateTime.Now;
+            }
+        }
+        else
+        {
+            encargo.Estado = EstadoArticulo.Rechazado;
+            encargo.ComentarioRechazo = comentario;
+
+           
+            if (encargo.ArticuloId.HasValue && encargo.Articulo != null)
+            {
+                encargo.Articulo.Estado = EstadoArticulo.Rechazado;
+            }
+        }
 
         contexto.EncargoArticulos.Update(encargo);
         return await contexto.SaveChangesAsync() > 0;
     }
+
 
     public async Task<bool> Cancelar(int encargoId)
     {
@@ -178,3 +200,4 @@ public class EncargoArticuloService(IDbContextFactory<ApplicationDbContext> dbFa
         }
     }
 }
+

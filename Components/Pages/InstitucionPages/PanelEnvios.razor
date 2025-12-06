@@ -149,7 +149,7 @@ else
     {
         if (encargoSeleccionado == null) return;
 
-        encargoSeleccionado.Estado = EstadoArticulo.Aprobado;
+        encargoSeleccionado.Estado = EstadoArticulo.AprobadoInstitucion;
         await EncargoService.Modificar(encargoSeleccionado);
 
         await CargarEncargos();

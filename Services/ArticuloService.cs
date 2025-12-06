@@ -37,23 +37,56 @@ public class ArticuloService(IDbContextFactory<ApplicationDbContext> dbFactory, 
 
         articulo.Estado = nuevoEstado;
 
-        if (nuevoEstado == EstadoArticulo.Aprobado)
+        if (nuevoEstado == EstadoArticulo.AprobadoInstitucion)
             articulo.FechaAprobacion = DateTime.Now;
 
+        if (nuevoEstado == EstadoArticulo.AprobadoEditor)
+            articulo.FechaAprobacion= DateTime.Now;
+  
         if (nuevoEstado == EstadoArticulo.Enviado)
-            articulo.FechaPublicacion = DateTime.Now;
-
+        {
+            articulo.FechaPublicacion=DateTime.Now;
+        }
         contexto.Articulos.Update(articulo);
         await contexto.SaveChangesAsync();
 
-  
-        if (nuevoEstado == EstadoArticulo.Aprobado)
+        if (nuevoEstado == EstadoArticulo.AprobadoEditor)
         {
             await pagoService.ProcesarPagosPorAprobacion(id);
         }
-
      
         return await GetArticuloCompleto(id);
+    }
+    public async Task<Articulo?> AprobarPorEditor(int articuloId, string? comentario = null)
+    {
+        await using var contexto = await dbFactory.CreateDbContextAsync();
+
+        var articulo = await contexto.Articulos
+            .Include(a => a.Categoria)
+            .Include(a => a.Institucion)
+            .Include(a => a.Periodista)
+            .Include(a => a.ServiciosPromocionales)
+                .ThenInclude(asp => asp.ServicioPromocional)
+            .FirstOrDefaultAsync(a => a.ArticuloId == articuloId);
+
+        if (articulo == null) return null;
+
+        
+        if (articulo.Estado == EstadoArticulo.Rechazado) return null;
+        if (articulo.Estado == EstadoArticulo.AprobadoEditor) return null;
+
+        
+        articulo.Estado = EstadoArticulo.AprobadoEditor;
+        articulo.FechaAprobacion = DateTime.Now;
+        articulo.FechaPublicacion = DateTime.Now;
+
+        var guardado=await Modificar(articulo);
+
+        if (!guardado) return null;
+
+        await pagoService.ProcesarPagosPorAprobacion(articuloId);
+
+        return await GetArticuloCompleto(articuloId);
     }
 
     public async Task<bool> Eliminar(int id)
@@ -82,14 +115,15 @@ public class ArticuloService(IDbContextFactory<ApplicationDbContext> dbFactory, 
     {
         await using var contexto = await dbFactory.CreateDbContextAsync();
         var articulo = await contexto.Articulos.FindAsync(articuloId);
-        if (articulo == null)
-            throw new Exception("El artículo no existe");
+        if (articulo == null) return null;
 
-        if (servicio.PrecioAplicado < 0)
-            throw new Exception("El precio del servicio no puede ser negativo");
+
+        if (servicio.PrecioAplicado < 0) return null;
+          
 
         servicio.ArticuloId = articuloId;
         servicio.FechaAplicacion = DateTime.Now;
+       
         contexto.ArticuloServicioPromocional.Add(servicio);
         await contexto.SaveChangesAsync();
 

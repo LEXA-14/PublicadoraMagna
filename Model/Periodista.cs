@@ -18,6 +18,8 @@ public class Periodista
 
     public DateTime FechaRegistro { get; set; }
 
+    public decimal Balance { get; set; }
+
     public List<Articulo> Articulos { get; set; } = new();
     }
 

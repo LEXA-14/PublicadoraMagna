@@ -133,7 +133,7 @@
     {
         var prelista = await EncargoService.GetLista(e => e.InstitucionId == institucionIdActual);
 
-        // Filtrar por fechas
+       
         if (desde.HasValue && hasta.HasValue)
             prelista = prelista.Where(e => e.FechaCreacion.Date >= desde.Value.Date && e.FechaCreacion.Date <= hasta.Value.Date).ToList();
 
@@ -143,7 +143,7 @@
         if (hasta.HasValue && !desde.HasValue)
             prelista = prelista.Where(e => e.FechaCreacion.Date <= hasta.Value.Date).ToList();
 
-        // Filtrar por texto
+        
         if (!string.IsNullOrWhiteSpace(ValorFiltro))
         {
             prelista = Filtro switch

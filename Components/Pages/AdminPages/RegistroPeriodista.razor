@@ -209,20 +209,9 @@
                 registrando = false;
                 return;
             }
-
-            var user = await SignInManager.UserManager.FindByEmailAsync(email);
-            if (user != null)
-            {
-                await SignInManager.SignInAsync(user, isPersistent: false);
-                registroExitoso = true;
-                await Task.Yield();
-                navigationManager.NavigateTo("/periodista/dashboard");
-            }
-            else
-            {
-               
-                navigationManager.NavigateTo("/Account/Login");
-            }
+            registroExitoso = true;
+            navigationManager.NavigateTo("/Account/Login", forceLoad: true);
+         
         }
         catch (Exception ex)
         {

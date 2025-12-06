@@ -2,7 +2,7 @@
 
 @using Microsoft.AspNetCore.Identity
 @inject InstitucionService InstitucionService
-@inject UserManager<ApplicationUser> UserManager
+
 @inject NavigationManager navigationManager
 @rendermode InteractiveServer
 
@@ -197,7 +197,6 @@
                 return;
             }
 
-            // Crear institución y usuario
             var creado = await InstitucionService.CrearConAdministrador(
                 institucion,
                 nombreAdmin,
@@ -211,7 +210,6 @@
                 return;
             }
 
-            // Registro exitoso - redirigir a login
             registroExitoso = true;
             await Task.Delay(1500);
             navigationManager.NavigateTo("/Account/Login", forceLoad: true);

@@ -1,0 +1,412 @@
+@page "/pagos/procesar/{ArticuloId:int}"
+@inject ArticuloService ArticuloService
+@inject NavigationManager NavigationManager
+@inject PagoService pagoService
+@rendermode InteractiveServer
+
+<PageTitle>Procesar Pago</PageTitle>
+
+<div class="container py-5">
+    @if (cargando)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-3 text-muted">Cargando información del pago...</p>
+        </div>
+    }
+    else if (articulo == null)
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            No se encontró el artículo solicitado.
+        </div>
+        <button class="btn btn-secondary" @onclick='() => NavigationManager.NavigateTo("/pagos")'>
+            <i class="fas fa-arrow-left me-2"></i>
+            Volver a Pagos
+        </button>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                @if (!pagoExitoso)
+                {
+                    
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-success text-white">
+                            <h4 class="mb-0">
+                                <i class="fas fa-credit-card me-2"></i>
+                                Procesar Pago Seguro
+                            </h4>
+                        </div>
+                        <div class="card-body p-4">
+                            @if (!string.IsNullOrEmpty(mensajeError))
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show">
+                                    <i class="fas fa-exclamation-circle me-2"></i>
+                                    @mensajeError
+                                    <button type="button" class="btn-close" @onclick='() => mensajeError = string.Empty'></button>
+                                </div>
+                            }
+
+                           
+                            <div class="mb-4">
+                                <h5 class="fw-bold mb-3">Resumen del Artículo</h5>
+                                <div class="card bg-light border-0">
+                                    <div class="card-body">
+                                        <small class="text-muted d-block mb-1">Artículo #@articulo.ArticuloId</small>
+                                        <h6 class="mb-1">@articulo.Titulo</h6>
+                                        <small class="text-muted">Categoría: @(articulo.Categoria?.Nombre ?? "N/A")</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div class="mb-4">
+                                <h5 class="fw-bold mb-3">Desglose del Pago</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Concepto</th>
+                                                <th class="text-center">Cant</th>
+                                                <th class="text-end">Monto</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Precio Base - @articulo.Categoria?.Nombre</td>
+                                                <td class="text-center">1</td>
+                                                <td class="text-end">RD$ @((articulo.Categoria?.PrecioBase ?? 0).ToString("N2"))</td>
+                                            </tr>
+                                            @foreach (var servicio in articulo.ServiciosPromocionales ?? new())
+                                            {
+                                                <tr>
+                                                    <td>@servicio.ServicioPromocional?.Nombre</td>
+                                                    <td class="text-center">1</td>
+                                                    <td class="text-end">RD$ @servicio.PrecioAplicado.ToString("N2")</td>
+                                                </tr>
+                                            }
+                                            <tr>
+                                                <td>Tarifa Periodista - @articulo.Periodista?.Nombres</td>
+                                                <td class="text-center">1</td>
+                                                <td class="text-end">RD$ @((articulo.Periodista?.TarifaBase ?? 0).ToString("N2"))</td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot class="table-light">
+                                            <tr class="fw-bold">
+                                                <td colspan="2">Subtotal</td>
+                                                <td class="text-end">RD$ @subtotal.ToString("N2")</td>
+                                            </tr>
+                                            <tr class="fw-bold">
+                                                <td colspan="2">ITBIS (18%)</td>
+                                                <td class="text-end">RD$ @itbis.ToString("N2")</td>
+                                            </tr>
+                                            <tr class="table-success fw-bold">
+                                                <td colspan="2" class="fs-5">TOTAL A PAGAR</td>
+                                                <td class="text-end fs-5">RD$ @totalAPagar.ToString("N2")</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            
+                            <h5 class="fw-bold mb-3">
+                                <i class="fas fa-lock me-2 text-success"></i>
+                                Información de Pago
+                            </h5>
+
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold">Número de Tarjeta</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-credit-card"></i>
+                                        </span>
+                                        <input type="text" class="form-control" 
+                                               @bind="numeroTarjeta" 
+                                               placeholder="1234 5678 9012 3456"
+                                               maxlength="19">
+                                    </div>
+                                    <small class="text-muted">Ingresa los 16 dígitos de tu tarjeta</small>
+                                </div>
+
+                                <div class="col-md-8">
+                                    <label class="form-label fw-semibold">Nombre del Titular</label>
+                                    <input type="text" class="form-control text-uppercase" 
+                                           @bind="nombreTitular" 
+                                           placeholder="NOMBRE COMO APARECE EN LA TARJETA">
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Fecha de Vencimiento</label>
+                                    <input type="text" class="form-control" 
+                                           @bind="fechaVencimiento" 
+                                           placeholder="MM/AA"
+                                           maxlength="5">
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">CVV</label>
+                                    <input type="password" class="form-control" 
+                                           @bind="cvv" 
+                                           placeholder="123"
+                                           maxlength="3">
+                                    <small class="text-muted">3 dígitos al reverso</small>
+                                </div>
+
+                                <div class="col-md-8">
+                                    <label class="form-label fw-semibold">Email de Confirmación</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-envelope"></i>
+                                        </span>
+                                        <input type="email" class="form-control" 
+                                               @bind="emailConfirmacion" 
+                                               placeholder="tu@email.com">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info mt-4">
+                                <i class="fas fa-shield-alt me-2"></i>
+                                <small class="mb-0">
+                                    <strong>Pago seguro y encriptado.</strong> 
+                                    Tus datos están protegidos.
+                                </small>
+                            </div>
+
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                                <button class="btn btn-outline-secondary" 
+                                        @onclick='() => NavigationManager.NavigateTo("/pagos")'
+                                        disabled="@procesando">
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    Cancelar
+                                </button>
+                                <button class="btn btn-success btn-lg" 
+                                        @onclick="ProcesarPago"
+                                        disabled="@procesando">
+                                    @if (procesando)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                        <span>Procesando...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-lock me-2"></i>
+                                        <span>Pagar RD$ @totalAPagar.ToString("N2")</span>
+                                    }
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body text-center p-5">
+                            <div class="mb-4">
+                                <div class="rounded-circle bg-success d-inline-flex align-items-center justify-content-center" 
+                                     style="width: 100px; height: 100px;">
+                                    <i class="fas fa-check text-white" style="font-size: 3rem;"></i>
+                                </div>
+                            </div>
+
+                            <h3 class="text-success fw-bold mb-3">¡Pago Procesado Exitosamente!</h3>
+                            <p class="text-muted mb-4">Tu pago ha sido procesado correctamente.</p>
+
+                            <div class="card bg-light border-0 mb-4">
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6 text-start">
+                                            <small class="text-muted d-block mb-1">Número de Transacción</small>
+                                            <strong class="d-block">@numeroTransaccion</strong>
+                                        </div>
+                                        <div class="col-md-6 text-start">
+                                            <small class="text-muted d-block mb-1">Monto Pagado</small>
+                                            <strong class="d-block text-success">RD$ @totalAPagar.ToString("N2")</strong>
+                                        </div>
+                                        <div class="col-md-6 text-start">
+                                            <small class="text-muted d-block mb-1">Fecha y Hora</small>
+                                            <strong class="d-block">@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</strong>
+                                        </div>
+                                        <div class="col-md-6 text-start">
+                                            <small class="text-muted d-block mb-1">Artículo</small>
+                                            <strong class="d-block">#@articulo.ArticuloId - @articulo.Titulo</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-success">
+                                <i class="fas fa-envelope me-2"></i>
+                                Se ha enviado un comprobante a <strong>@emailConfirmacion</strong>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary btn-lg" @onclick='() => NavigationManager.NavigateTo("/pagos")'>
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    Volver a Pagos
+                                </button>
+                                <button class="btn btn-outline-secondary">
+                                    <i class="fas fa-download me-2"></i>
+                                    Descargar Comprobante (Próximamente)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+
+@if (procesando)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.8);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 bg-transparent text-white text-center">
+                <div class="modal-body">
+                    <div class="spinner-border mb-3" style="width: 4rem; height: 4rem;" role="status">
+                        <span class="visually-hidden">Procesando...</span>
+                    </div>
+                    <h5 class="mb-2">Procesando tu pago...</h5>
+                    <p class="mb-0">Por favor espera un momento</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+</div>
+@code {
+
+    [Parameter]
+    public int ArticuloId { get; set; }
+
+    private Articulo? articulo;
+    private bool cargando = true;
+    private bool procesando = false;
+    private bool pagoExitoso = false;
+
+    private decimal subtotal = 0m;
+    private decimal itbis = 0m;
+    private decimal totalAPagar = 0m;
+
+    private string numeroTarjeta = string.Empty;
+    private string nombreTitular = string.Empty;
+    private string fechaVencimiento = string.Empty;
+    private string cvv = string.Empty;
+    private string emailConfirmacion = string.Empty;
+    private string mensajeError = string.Empty;
+    private string numeroTransaccion = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            articulo = await ArticuloService.GetArticuloCompleto(ArticuloId);
+
+            if (articulo != null)
+            {
+                CalcularTotales();
+            }
+        }
+        catch (Exception)
+        {
+            articulo = null;
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void CalcularTotales()
+    {
+        if (articulo == null) return;
+
+        var precioBase = articulo.Categoria?.PrecioBase ?? 0m;
+        var servicios = articulo.ServiciosPromocionales?.Sum(s => s.PrecioAplicado) ?? 0m;
+        var tarifaPeriodista = articulo.Periodista?.TarifaBase ?? 0m;
+
+        subtotal = precioBase + servicios + tarifaPeriodista;
+        itbis = subtotal * 0.18m;
+        totalAPagar = subtotal + itbis;
+    }
+
+    private async Task ProcesarPago()
+    {
+        mensajeError = string.Empty;
+
+        if (!ValidarFormulario())
+        {
+            return;
+        }
+        procesando = true;
+
+        try
+        {
+            await Task.Delay(3000);
+            numeroTransaccion = $"TRX-{DateTime.Now:yyyyMMddHHmmss}-{new Random().Next(1000, 9999)}";
+
+            var pagoExitosoDb = await pagoService.MarcarPagoInstitucionComoPagado(ArticuloId, numeroTransaccion);
+            if (!pagoExitosoDb)
+            {
+                mensajeError = "No se pudo procesar el pago";
+            }
+
+            pagoExitoso = true;
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al procesar el pago: {ex.Message}";
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+
+    private bool ValidarFormulario()
+    {
+        if (string.IsNullOrWhiteSpace(numeroTarjeta) || numeroTarjeta.Replace(" ", "").Length < 15)
+        {
+            mensajeError = "Ingresa un número de tarjeta válido (16 dígitos)";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(nombreTitular) || nombreTitular.Length < 3)
+        {
+            mensajeError = "Ingresa el nombre del titular de la tarjeta";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(fechaVencimiento) || !fechaVencimiento.Contains("/"))
+        {
+            mensajeError = "Ingresa una fecha de vencimiento válida (MM/AA)";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(cvv) || cvv.Length != 3)
+        {
+            mensajeError = "Ingresa un CVV válido (3 dígitos)";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(emailConfirmacion) || !emailConfirmacion.Contains("@"))
+        {
+            mensajeError = "Ingresa un email válido para recibir el comprobante";
+            return false;
+        }
+
+        return true;
+    }
+}

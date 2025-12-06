@@ -1,6 +1,7 @@
 @page "/articulos/crear"
 @page "/articulos/editar/{ArticuloId:int}"
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.Forms
 @inject ArticuloService ArticuloService
 @inject CategoriaService CategoriaService
 @inject PeriodistaService PeriodistaService
@@ -23,6 +24,8 @@
                     <button type="button" class="btn-close" @onclick="@(() => errorMessage = string.Empty)"></button>
                 </div>
             }
+
+           
             <div class="card mb-4">
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
@@ -50,18 +53,10 @@
                             }
                         </select>
                     </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Tipo de Artículo</label>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="esLibre" @bind="articulo.EsLibre">
-                            <label class="form-check-label" for="esLibre">
-                                Artículo Pagado
-                            </label>
-                        </div>
-                    </div>
                 </div>
             </div>
+
+            <!-- Info Autoría Automática -->
             @if (esUsuarioInstitucion)
             {
                 <div class="card mb-4">
@@ -89,6 +84,8 @@
                     </div>
                 </div>
             }
+
+ 
             <div class="card mb-4">
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
@@ -108,6 +105,8 @@
                     </div>
                 </div>
             </div>
+
+           
             @if (!esUsuarioPeriodista)
             {
                 <div class="card mb-4">
@@ -188,35 +187,37 @@
                         </div>
                         <div>
                             <h5 class="mb-0">Imágenes</h5>
-                            <small class="text-muted">Opcional - Agregar imágenes al artículo</small>
+                            <small class="text-muted">Sube imágenes para tu artículo</small>
                         </div>
                     </div>
 
-                    <div class="input-group mb-3">
-                        <input type="text" class="form-control" @bind="nuevaImagen" placeholder="URL de la imagen" />
-                        <button class="btn btn-outline-primary" type="button" @onclick="AgregarImagen">
-                            <i class="bi bi-plus-circle"></i> Agregar
-                        </button>
+                    <div class="mb-3">
+                        <InputFile OnChange="CargarImagen" class="form-control" accept="image/*" />
+                        <small class="text-muted">Formatos: JPG, PNG, GIF (máx. 5MB)</small>
                     </div>
 
                     @if (articulo.Imagenes.Any())
                     {
-                        <div class="list-group">
+                        <div class="row">
                             @foreach (var imagen in articulo.Imagenes)
                             {
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    <small class="text-truncate">@imagen</small>
-                                    <button type="button" class="btn btn-sm btn-danger" @onclick="@(() => EliminarImagen(imagen))">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card">
+                                        <img src="@imagen" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Imagen del artículo" />
+                                        <div class="card-body p-2">
+                                            <button type="button" class="btn btn-sm btn-danger w-100" @onclick="@(() => EliminarImagen(imagen))">
+                                                <i class="bi bi-trash"></i> Eliminar
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             }
                         </div>
                     }
                 </div>
             </div>
-
         </div>
+
         <div class="col-lg-4">
             <div class="card mb-4 sticky-top" style="top: 20px;">
                 <div class="card-body">
@@ -327,6 +328,7 @@
 </div>
 
 @code {
+
     [Parameter] public int ArticuloId { get; set; }
     [CascadingParameter] private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
@@ -334,12 +336,11 @@
     private List<Categoria> listaCategorias = new();
     private List<Periodista> listaPeriodistas = new();
     private List<ServicioPromocional> listaServiciosPromocionales = new();
-    
+
     private string errorMessage = string.Empty;
     private string errorServicio = string.Empty;
-    private string nuevaImagen = string.Empty;
     private int servicioSeleccionadoId = 0;
-    
+
     private bool esUsuarioInstitucion;
     private bool esUsuarioPeriodista;
     private int institucionIdActual;
@@ -398,31 +399,27 @@
     private async Task CargarDatosInstitucion(ClaimsPrincipal user)
     {
         var institucionIdClaim = user.FindFirst("InstitucionId");
-    if (institucionIdClaim != null && int.TryParse(institucionIdClaim.Value, out int instId))
-    {
-        institucionIdActual = instId;
-    }
-    else
-    {
-    
-        var email = user.FindFirst(ClaimTypes.Email)?.Value;
-        if (!string.IsNullOrEmpty(email))
+        if (institucionIdClaim != null && int.TryParse(institucionIdClaim.Value, out int instId))
         {
-            var appUser = await UserManager.FindByEmailAsync(email);
-            if (appUser?.InstitucionId != null)
+            institucionIdActual = instId;
+        }
+        else
+        {
+            var email = user.FindFirst(ClaimTypes.Email)?.Value;
+            if (!string.IsNullOrEmpty(email))
             {
-                institucionIdActual = appUser.InstitucionId.Value;
+                var appUser = await UserManager.FindByEmailAsync(email);
+                if (appUser?.InstitucionId != null)
+                {
+                    institucionIdActual = appUser.InstitucionId.Value;
+                }
             }
         }
+        nombreInstitucion = user.FindFirst(ClaimTypes.Name)?.Value ?? "Institución";
     }
-
-    nombreInstitucion = user.FindFirst(ClaimTypes.Name)?.Value ?? "Institución";
-}
-    
 
     private async Task CargarDatosPeriodista(ClaimsPrincipal user)
     {
-       
         var periodistaIdClaim = user.FindFirst("PeriodistaId");
         if (periodistaIdClaim != null && int.TryParse(periodistaIdClaim.Value, out int perId))
         {
@@ -430,7 +427,6 @@
         }
         else
         {
-           
             var email = user.FindFirst(ClaimTypes.Email)?.Value;
             if (!string.IsNullOrEmpty(email))
             {
@@ -442,7 +438,6 @@
             }
         }
 
-     
         if (periodistaIdActual > 0)
         {
             var periodista = await PeriodistaService.Buscar(periodistaIdActual);
@@ -455,6 +450,41 @@
 
         articulo.EsLibre = true;
         articulo.PeriodistaId = periodistaIdActual;
+    }
+
+    private async Task CargarImagen(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var archivo = e.File;
+
+            if (archivo.Size > 5 * 1024 * 1024)
+            {
+                errorMessage = "La imagen no puede superar los 5MB";
+                return;
+            }
+
+
+            var extension = Path.GetExtension(archivo.Name);
+            var nombreArchivo = $"{Guid.NewGuid()}{extension}";
+
+
+            var carpetaUploads = Path.Combine("wwwroot", "uploads");
+            Directory.CreateDirectory(carpetaUploads);
+
+
+            var rutaCompleta = Path.Combine(carpetaUploads, nombreArchivo);
+            await using var stream = new FileStream(rutaCompleta, FileMode.Create);
+            await archivo.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).CopyToAsync(stream);
+
+
+            articulo.Imagenes.Add($"/uploads/{nombreArchivo}");
+            errorMessage = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar imagen: {ex.Message}";
+        }
     }
 
     private void AgregarServicio()
@@ -496,16 +526,26 @@
         RecalcularTotales();
     }
 
-    private void AgregarImagen()
+    private void EliminarImagen(string urlImagen)
     {
-        if (!string.IsNullOrWhiteSpace(nuevaImagen))
+        try
         {
-            articulo.Imagenes.Add(nuevaImagen);
-            nuevaImagen = string.Empty;
+
+            if (urlImagen.StartsWith("/uploads/"))
+            {
+                var rutaArchivo = Path.Combine("wwwroot", urlImagen.TrimStart('/'));
+                if (File.Exists(rutaArchivo))
+                {
+                    File.Delete(rutaArchivo);
+                }
+            }
+            articulo.Imagenes.Remove(urlImagen);
+        }
+        catch
+        {
+            articulo.Imagenes.Remove(urlImagen);
         }
     }
-
-    private void EliminarImagen(string imagen) => articulo.Imagenes.Remove(imagen);
 
     private void RecalcularTotales()
     {
@@ -516,10 +556,8 @@
         totalServicios = articulo.ServiciosPromocionales.Sum(s => s.PrecioAplicado);
         tarifaPeriodista = 0;
     }
-
     private async Task Guardar(EstadoArticulo estado)
     {
-      
         if (string.IsNullOrWhiteSpace(articulo.Titulo))
         {
             errorMessage = "El título es requerido";
@@ -540,41 +578,62 @@
 
         try
         {
-           
-            articulo.Resumen = articulo.Contenido.Length > 200 
-                ? articulo.Contenido.Substring(0, 200) + "..." 
+            articulo.Resumen = articulo.Contenido.Length > 200
+                ? articulo.Contenido.Substring(0, 200) + "..."
                 : articulo.Contenido;
 
             articulo.Estado = estado;
 
-          
+           
             if (esUsuarioInstitucion)
             {
                 articulo.InstitucionId = institucionIdActual;
                 articulo.PeriodistaId = null;
+
+                
+                var categoria = await CategoriaService.Buscar(articulo.CategoriaId);
+
+                if (categoria == null)
+                {
+                    errorMessage = "No se pudo obtener el precio de la categoría";
+                    return;
+                }
+
+                articulo.TotalAPagar = categoria.PrecioBase; 
             }
+            
             else if (esUsuarioPeriodista)
             {
                 articulo.PeriodistaId = periodistaIdActual;
                 articulo.InstitucionId = null;
+
+                
+                var periodista = await PeriodistaService.Buscar(periodistaIdActual);
+
+                if (periodista == null)
+                {
+                    errorMessage = "No se pudo obtener la tarifa del periodista";
+                    return;
+                }
+
+                articulo.TotalAPagar = periodista.TarifaBase;
             }
 
-            var guardado = await ArticuloService.Guardar(articulo);
+            
+            var ok = await ArticuloService.Guardar(articulo);
 
-            if (guardado)
-            {
-                navigationManager.NavigateTo("/articulos");
-            }
-            else
+            if (!ok)
             {
                 errorMessage = "No se pudo guardar el artículo";
+                return;
             }
+
+            
+            navigationManager.NavigateTo("/articulos");
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error al guardar: {ex.Message}";
+            errorMessage = "Error inesperado: " + ex.Message;
         }
     }
-
-
 }

@@ -1,0 +1,500 @@
+@page "/pagos"
+@inject ArticuloService ArticuloService
+@inject InstitucionService InstitucionService
+@inject AuthenticationStateProvider AuthProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Panel de Pagos</PageTitle>
+
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #2d5f4d 0%, #3a7a5f 100%);
+        color: white;
+        padding: 40px 0;
+        margin-bottom: 30px;
+    }
+    .stat-card.primary {
+        background: linear-gradient(135deg, #2d5f4d 0%, #3a7a5f 100%);
+        color: white;
+    }
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 12px;
+    }
+    .stat-card.primary .stat-icon {
+        background: rgba(255,255,255,0.2);
+    }
+    .stat-icon.warning {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+    .stat-icon.info {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+    .stat-icon.success {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+    .order-card:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        transform: translateY(-2px);
+        transition: all 0.3s ease;
+    }
+    .btn-pagar {
+        background: #f57c00;
+        border: none;
+        color: white;
+    }
+    .btn-pagar:hover {
+        background: #e65100;
+        color: white;
+    }
+    .badge-pendiente {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+</style>
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-6 fw-bold mb-2">
+                    <i class="fas fa-file-invoice-dollar me-3"></i>
+                    Panel de Pagos
+                </h1>
+                <p class="mb-0 opacity-75">Gestiona los pagos de artículos</p>
+            </div>
+            <div class="text-end">
+                <small class="opacity-75">
+                    @DateTime.Now.ToString("dddd, d 'de' MMMM yyyy", new System.Globalization.CultureInfo("es-ES"))
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="container py-4">
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @mensajeError
+            <button type="button" class="btn-close" @onclick="@(() => mensajeError = string.Empty)"></button>
+        </div>
+    }
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card primary h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="stat-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <small class="d-block opacity-75 mb-2">Total General</small>
+                    <h3 class="mb-1">RD$ @totalGeneral.ToString("N2")</h3>
+                    <small class="opacity-75">@articulosPendientes.Count artículos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <small class="text-muted d-block mb-2">Pendientes</small>
+                    <h3 class="mb-1">RD$ @totalPendiente.ToString("N2")</h3>
+                    <small class="text-muted">@articulosFiltrados.Count artículos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="stat-icon info">
+                        <i class="fas fa-spinner"></i>
+                    </div>
+                    <small class="text-muted d-block mb-2">En Proceso</small>
+                    <h3 class="mb-1">RD$ 0.00</h3>
+                    <small class="text-muted">0 artículos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="stat-icon success">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <small class="text-muted d-block mb-2">Completados</small>
+                    <h3 class="mb-1">RD$ 0.00</h3>
+                    <small class="text-muted">0 artículos</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Órdenes de Artículos</h5>
+            
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-white">
+                    <i class="fas fa-search text-muted"></i>
+                </span>
+                <input type="text" class="form-control border-start-0" @bind="filtroTexto" @bind:event="oninput"
+                       placeholder="Buscar por título, orden o periodista...">
+            </div>
+
+            <ul class="nav nav-pills">
+                <li class="nav-item">
+                    <button class="nav-link @(filtroEstado == "todos" ? "active" : "")" 
+                            @onclick='() => CambiarFiltro("todos")'>
+                        Todos
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(filtroEstado == "proceso" ? "active" : "")" 
+                            @onclick='() => CambiarFiltro("proceso")'>
+                        En Proceso
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(filtroEstado == "completados" ? "active" : "")" 
+                            @onclick='() => CambiarFiltro("completados")'>
+                        Completados
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(filtroEstado == "pendientes" ? "active" : "")" 
+                            @onclick='() => CambiarFiltro("pendientes")'>
+                        Pendientes
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Orders Grid -->
+    @if (cargando)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-3 text-muted">Cargando artículos...</p>
+        </div>
+    }
+    else if (!articulosFiltrados.Any())
+    {
+        <div class="text-center py-5">
+            <i class="fas fa-inbox text-muted" style="font-size: 4rem;"></i>
+            <p class="mt-3 text-muted">No hay artículos pendientes de pago</p>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var articulo in articulosFiltrados)
+            {
+                <div class="col">
+                    <div class="card h-100 border-0 shadow-sm order-card">
+                        <div class="card-body">
+                            <!-- Header -->
+                            <div class="d-flex align-items-start mb-3 pb-3 border-bottom">
+                                <div class="bg-light rounded p-2 me-3">
+                                    <i class="fas fa-file-alt text-muted"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 fw-bold">@articulo.Titulo</h6>
+                                    <small class="text-muted">#@articulo.ArticuloId / @(articulo.Categoria?.Nombre ?? "Sin categoría")</small>
+                                </div>
+                                <span class="badge badge-pendiente">
+                                    <i class="fas fa-clock me-1"></i>Pendiente
+                                </span>
+                            </div>
+
+                            <!-- Fecha -->
+                            <div class="d-flex justify-content-between text-muted small mb-3">
+                                <span>@articulo.FechaPublicacion?.ToString("ddd, dd MMM yyyy", new System.Globalization.CultureInfo("es-ES"))</span>
+                                <span>@articulo.FechaPublicacion?.ToString("hh:mm tt")</span>
+                            </div>
+
+                            <!-- Items -->
+                            <div class="mb-3">
+                                <table class="table table-sm table-borderless mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <td class="ps-0"><small>Precio base categoría</small></td>
+                                            <td class="pe-0 text-end"><small class="fw-semibold">RD$ @((articulo.Categoria?.PrecioBase ?? 0).ToString("N2"))</small></td>
+                                        </tr>
+                                        @foreach (var servicio in articulo.ServiciosPromocionales ?? new())
+                                        {
+                                            <tr>
+                                                <td class="ps-0"><small>@servicio.ServicioPromocional?.Nombre</small></td>
+                                                <td class="pe-0 text-end"><small class="fw-semibold">RD$ @servicio.PrecioAplicado.ToString("N2")</small></td>
+                                            </tr>
+                                        }
+                                        <tr>
+                                            <td class="ps-0"><small>Tarifa periodista</small></td>
+                                            <td class="pe-0 text-end"><small class="fw-semibold">RD$ @((articulo.Periodista?.TarifaBase ?? 0).ToString("N2"))</small></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Total -->
+                            <div class="d-flex justify-content-between align-items-center pt-3 border-top mb-3">
+                                <span class="fw-bold">Total</span>
+                                <h5 class="mb-0 text-success">RD$ @CalcularTotal(articulo).ToString("N2")</h5>
+                            </div>
+
+                            <!-- Botones -->
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="() => MostrarDetalles(articulo)">
+                                    <i class="fas fa-eye me-2"></i>Ver Detalles
+                                </button>
+                                <button class="btn btn-pagar btn-sm" @onclick="() => IrAPagar(articulo.ArticuloId)">
+                                    <i class="fas fa-credit-card me-2"></i>Pagar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Modal de Detalles -->
+@if (articuloSeleccionado != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-invoice me-2"></i>
+                        Detalles del Artículo
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <h6 class="fw-bold">@articuloSeleccionado.Titulo</h6>
+                        <p class="text-muted small mb-0">Artículo #@articuloSeleccionado.ArticuloId</p>
+                        <p class="text-muted small">Categoría: @(articuloSeleccionado.Categoria?.Nombre ?? "N/A")</p>
+                    </div>
+
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Concepto</th>
+                                <th class="text-center">Cantidad</th>
+                                <th class="text-end">Precio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Precio Base - @articuloSeleccionado.Categoria?.Nombre</td>
+                                <td class="text-center">1</td>
+                                <td class="text-end">RD$ @((articuloSeleccionado.Categoria?.PrecioBase ?? 0).ToString("N2"))</td>
+                            </tr>
+                            @foreach (var servicio in articuloSeleccionado.ServiciosPromocionales ?? new())
+                            {
+                                <tr>
+                                    <td>Servicio: @servicio.ServicioPromocional?.Nombre</td>
+                                    <td class="text-center">1</td>
+                                    <td class="text-end">RD$ @servicio.PrecioAplicado.ToString("N2")</td>
+                                </tr>
+                            }
+                            <tr>
+                                <td>Tarifa Periodista - @articuloSeleccionado.Periodista?.Nombres</td>
+                                <td class="text-center">1</td>
+                                <td class="text-end">RD$ @((articuloSeleccionado.Periodista?.TarifaBase ?? 0).ToString("N2"))</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold">
+                                <td colspan="2">Subtotal</td>
+                                <td class="text-end">RD$ @CalcularTotal(articuloSeleccionado).ToString("N2")</td>
+                            </tr>
+                            <tr class="fw-bold">
+                                <td colspan="2">ITBIS (18%)</td>
+                                <td class="text-end">RD$ @(CalcularTotal(articuloSeleccionado) * 0.18m).ToString("N2")</td>
+                            </tr>
+                            <tr class="fw-bold text-primary" style="font-size: 1.1rem;">
+                                <td colspan="2">TOTAL A PAGAR</td>
+                                <td class="text-end">RD$ @(CalcularTotal(articuloSeleccionado) * 1.18m).ToString("N2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <div class="alert alert-info mt-3">
+                        <small>
+                            <i class="fas fa-info-circle me-2"></i>
+                            Al pagar este artículo, se generará un comprobante automático.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CerrarModal">
+                        Cerrar
+                    </button>
+                    <button type="button" class="btn btn-primary" style="background: #f57c00; border: none;"
+                            @onclick="() => IrAPagar(articuloSeleccionado.ArticuloId)">
+                        <i class="fas fa-credit-card me-2"></i>
+                        Proceder al Pago
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Articulo> articulosPendientes = new();
+    private List<Articulo> articulosFiltrados = new();
+    private Articulo? articuloSeleccionado;
+    
+    private string mensajeError = string.Empty;
+    private string filtroTexto = string.Empty;
+    private string filtroEstado = "todos";
+    private bool cargando = true;
+    
+    private int institucionIdActual = 0;
+    private decimal totalGeneral = 0m;
+    private decimal totalPendiente = 0m;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Obtener institución del usuario actual
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var institucionIdClaim = user.FindFirst("InstitucionId");
+                if (institucionIdClaim != null && int.TryParse(institucionIdClaim.Value, out int instId))
+                {
+                    institucionIdActual = instId;
+                }
+                else
+                {
+                    var email = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                    if (!string.IsNullOrEmpty(email))
+                    {
+                        var appUser = await UserManager.FindByEmailAsync(email);
+                        if (appUser?.InstitucionId != null)
+                        {
+                            institucionIdActual = appUser.InstitucionId.Value;
+                        }
+                    }
+                }
+            }
+
+            await CargarArticulos();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar datos: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task CargarArticulos()
+    {
+        // Cargar artículos AprobadoEditor de esta institución
+        articulosPendientes = await ArticuloService.ListarPorEstado(EstadoArticulo.AprobadoEditor);
+        
+        if (institucionIdActual > 0)
+        {
+            articulosPendientes = articulosPendientes
+                .Where(a => a.InstitucionId == institucionIdActual)
+                .ToList();
+        }
+
+        articulosFiltrados = articulosPendientes;
+        CalcularTotales();
+        AplicarFiltros();
+    }
+
+    private void CalcularTotales()
+    {
+        totalGeneral = articulosPendientes.Sum(a => CalcularTotal(a));
+        totalPendiente = totalGeneral;
+    }
+
+    private decimal CalcularTotal(Articulo articulo)
+    {
+        var precioBase = articulo.Categoria?.PrecioBase ?? 0m;
+        var servicios = articulo.ServiciosPromocionales?.Sum(s => s.PrecioAplicado) ?? 0m;
+        var tarifaPeriodista = articulo.Periodista?.TarifaBase ?? 0m;
+        
+        return precioBase + servicios + tarifaPeriodista;
+    }
+
+    private void CambiarFiltro(string estado)
+    {
+        filtroEstado = estado;
+        AplicarFiltros();
+    }
+
+    private void AplicarFiltros()
+    {
+        articulosFiltrados = articulosPendientes;
+
+        // Filtro por texto
+        if (!string.IsNullOrWhiteSpace(filtroTexto))
+        {
+            articulosFiltrados = articulosFiltrados.Where(a =>
+                a.Titulo.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) ||
+                a.ArticuloId.ToString().Contains(filtroTexto) ||
+                (a.Periodista?.Nombres.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) ?? false)
+            ).ToList();
+        }
+
+        // Filtro por estado (por ahora todos son pendientes)
+        if (filtroEstado == "pendientes")
+        {
+            articulosFiltrados = articulosPendientes;
+        }
+        else if (filtroEstado == "proceso" || filtroEstado == "completados")
+        {
+            articulosFiltrados = new List<Articulo>();
+        }
+    }
+
+    private void MostrarDetalles(Articulo articulo)
+    {
+        articuloSeleccionado = articulo;
+    }
+
+    private void CerrarModal()
+    {
+        articuloSeleccionado = null;
+    }
+
+    private void IrAPagar(int articuloId)
+    {
+        NavigationManager.NavigateTo($"/pagos/procesar/{articuloId}");
+    }
+}

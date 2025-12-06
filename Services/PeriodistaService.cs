@@ -7,7 +7,7 @@ namespace PublicadoraMagna.Services;
 
 public class PeriodistaService(IDbContextFactory<ApplicationDbContext> dbFactory,UserManager<ApplicationUser> userManager)
 {
-    //new
+    
     public async Task<bool> CrearConUsuario(
      Periodista periodista,
      string email,
@@ -59,56 +59,7 @@ public class PeriodistaService(IDbContextFactory<ApplicationDbContext> dbFactory
 
     }
 
-    //public async Task<bool> CrearConUsuario(
-    //  Periodista periodista,
-    //  string email,
-    //  string password)
-    //{
 
-    //    var usuarioExiste = await userManager.FindByEmailAsync(email);
-    //    if (usuarioExiste != null)
-    //        return false;
-
-    //    if (string.IsNullOrWhiteSpace(periodista.Nombres))
-    //        return false;
-
-    //    if (periodista.TarifaBase < 0)
-    //        return false;
-
-
-    //    periodista.FechaRegistro = DateTime.Now;
-    //    periodista.EsActivo = true;
-
-    //    await using var contexto = await dbFactory.CreateDbContextAsync();
-    //    contexto.Periodistas.Add(periodista);
-    //    var guardado = await contexto.SaveChangesAsync() > 0;
-
-    //    if (!guardado)
-    //        return false;
-
-    //    await contexto.Entry(periodista).ReloadAsync();
-
-    //    // Crear el usuario
-    //    var user = new ApplicationUser
-    //    {
-    //        UserName = email,
-    //        Email = email,
-    //        NombreCompleto = periodista.Nombres,
-    //        PeriodistaId = periodista.PeriodistaId,
-    //        EmailConfirmed = true,
-    //        //FechaRegistro = DateTime.Now
-    //    };
-
-    //    var result = await userManager.CreateAsync(user, password);
-    //    if (!result.Succeeded)
-    //        return false;
-
-    //    // Asignar rol de Periodista
-    //    await userManager.AddToRoleAsync(user, AppRoles.Periodista);
-
-    //    return true;
-
-    //}
 
 
     public async Task<bool> Guardar(Periodista periodista)

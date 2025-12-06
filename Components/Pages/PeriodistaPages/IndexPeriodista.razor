@@ -172,7 +172,7 @@
     private string EstadoStyle(EstadoArticulo estado) => estado switch
     {
         EstadoArticulo.Rechazado => "table-danger",
-        EstadoArticulo.Aprobado => "table-success",
+        EstadoArticulo.AprobadoEditor => "table-success",
         EstadoArticulo.Pendiente => "table-warning",
         EstadoArticulo.Borrador => "table-secondary",
         _ => ""

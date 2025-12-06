@@ -87,8 +87,11 @@
                                             case EstadoArticulo.Pendiente:
                                                 <span class="badge bg-warning text-dark">Pendiente</span>
                                                 break;
-                                            case EstadoArticulo.Aprobado:
-                                                <span class="badge bg-success">Aprobado</span>
+                                            case EstadoArticulo.AprobadoInstitucion:
+                                                <span class="badge bg-success">Aprobado por Institucion</span>
+                                                break;
+                                            case EstadoArticulo.AprobadoEditor:
+                                                <span class="badge bg-success">Aprobado por Editor</span>
                                                 break;
                                             case EstadoArticulo.Rechazado:
                                                 <span class="badge bg-danger">Rechazado</span>
@@ -117,7 +120,7 @@
                                             </button>
                                             @if (art.Estado == EstadoArticulo.Pendiente)
                                             {
-                                                <button class="btn btn-sm btn-outline-success" @onclick="async () => await CambiarEstado(art.ArticuloId, EstadoArticulo.Aprobado)" title="Aprobar">
+                                                <button class="btn btn-sm btn-outline-success" @onclick="async () => await CambiarEstado(art.ArticuloId, EstadoArticulo.AprobadoEditor)" title="Aprobar">
                                                     <i class="bi bi-check-circle"></i>
                                                 </button>
                                             }
@@ -176,7 +179,7 @@
 
     private void IrAEditar(int id)
     {
-        Navigation.NavigateTo($"/articulos/edit/{id}");
+        Navigation.NavigateTo($"/articulos/editar/{id}");
     }
 
     private async Task Eliminar(int id)

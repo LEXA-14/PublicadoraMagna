@@ -5,12 +5,9 @@ namespace PublicadoraMagna.Model;
 public enum EstadoArticulo
 {
     Borrador = 0,
-
     Pendiente = 1,
-
-    Aprobado = 2,
-
-    Rechazado = 3,
-
-    Enviado = 4
+    AprobadoInstitucion = 2, 
+    AprobadoEditor = 3,
+    Rechazado = 4,
+    Enviado = 5
 }
