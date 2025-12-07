@@ -1,0 +1,434 @@
+@page "/periodista/pagos"
+@using Microsoft.EntityFrameworkCore
+@inject ArticuloService ArticuloService
+@inject AuthenticationStateProvider AuthProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@rendermode InteractiveServer
+
+<PageTitle>Mis Pagos - Periodista</PageTitle>
+
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+        color: white;
+        padding: 40px 0;
+        margin-bottom: 30px;
+    }
+    .stat-card.primary {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+        color: white;
+    }
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 12px;
+    }
+    .stat-card.primary .stat-icon {
+        background: rgba(255,255,255,0.2);
+    }
+    .stat-icon.warning {
+        background: #fff3e0;
+        color: #e65100;
+    }
+    .stat-icon.success {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+    .badge-pendiente {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+</style>
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-6 fw-bold mb-2">
+                    <i class="fas fa-money-bill-wave me-3"></i>
+                    Mis Pagos
+                </h1>
+                <p class="mb-0 opacity-75">Consulta tus pagos por artículos publicados</p>
+            </div>
+            <div class="text-end">
+                <small class="opacity-75">
+                    @DateTime.Now.ToString("dddd, d 'de' MMMM yyyy", new System.Globalization.CultureInfo("es-ES"))
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="container py-4">
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @mensajeError
+            <button type="button" class="btn-close" @onclick="@(() => mensajeError = string.Empty)"></button>
+        </div>
+    }
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card stat-card primary h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="stat-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <small class="d-block opacity-75 mb-2">Total Pendiente</small>
+                    <h3 class="mb-1">RD$ @totalPendiente.ToString("N2")</h3>
+                    <small class="opacity-75">@pagosPendientes.Count artículos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <small class="text-muted d-block mb-2">Por Cobrar</small>
+                    <h3 class="mb-1">RD$ @totalPendiente.ToString("N2")</h3>
+                    <small class="text-muted">@pagosPendientes.Count artículos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="stat-icon success">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <small class="text-muted d-block mb-2">Cobrados</small>
+                    <h3 class="mb-1">RD$ @totalCobrado.ToString("N2")</h3>
+                    <small class="text-muted">@pagosCobrados.Count artículos</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Mis Artículos Publicados</h5>
+            
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-white">
+                    <i class="fas fa-search text-muted"></i>
+                </span>
+                <input type="text" class="form-control border-start-0" @bind="filtroTexto" @bind:event="oninput"
+                       placeholder="Buscar por título o institución...">
+                <button class="btn text-white" type="button" @onclick="AplicarFiltros" 
+                        style="background-color: #e65100; border-color: #e65100;">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+
+            <ul class="nav nav-pills">
+                <li class="nav-item">
+                    <button class="nav-link @(filtroEstado == "todos" ? "active" : "")" 
+                            @onclick='() => CambiarFiltro("todos")'>
+                        Todos
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(filtroEstado == "pendientes" ? "active" : "")" 
+                            @onclick='() => CambiarFiltro("pendientes")'>
+                        Pendientes
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(filtroEstado == "cobrados" ? "active" : "")" 
+                            @onclick='() => CambiarFiltro("cobrados")'>
+                        Cobrados
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Orders Grid -->
+    @if (cargando)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-3 text-muted">Cargando pagos...</p>
+        </div>
+    }
+    else if (!pagosFiltrados.Any())
+    {
+        <div class="text-center py-5">
+            <i class="fas fa-inbox text-muted" style="font-size: 4rem;"></i>
+            <p class="mt-3 text-muted">No hay pagos registrados</p>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var pago in pagosFiltrados)
+            {
+                <div class="col">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <!-- Header -->
+                            <div class="d-flex align-items-start mb-3 pb-3 border-bottom">
+                                <div class="bg-light rounded p-2 me-3">
+                                    <i class="fas fa-file-alt text-muted"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 fw-bold">@pago.Articulo?.Titulo</h6>
+                                    <small class="text-muted">#@pago.ArticuloId / @(pago.Articulo?.Categoria?.Nombre ?? "N/A")</small>
+                                </div>
+                                <span class="badge @(pago.Pago.Estado == "Pendiente" ? "badge-pendiente" : "bg-success")">
+                                    <i class="fas @(pago.Pago.Estado == "Pendiente" ? "fa-clock" : "fa-check-circle") me-1"></i>
+                                    @(pago.Pago.Estado == "Pendiente" ? "Pendiente" : "Cobrado")
+                                </span>
+                            </div>
+
+                            <!-- Fecha -->
+                            <div class="mb-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Fecha de pago: @pago.Pago.Fecha.ToString("dd/MM/yyyy")
+                                </small>
+                            </div>
+
+                            <!-- Institución -->
+                            @if (pago.Articulo?.InstitucionId != null)
+                            {
+                                <div class="mb-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-building me-1"></i>
+                                        @pago.Articulo.Institucion?.Nombre
+                                    </small>
+                                </div>
+                            }
+
+                            <!-- Monto -->
+                            <div class="d-flex justify-content-between align-items-center pt-3 border-top mb-3">
+                                <span class="fw-bold">A Cobrar</span>
+                                <h5 class="mb-0 text-success">RD$ @pago.Monto.ToString("N2")</h5>
+                            </div>
+
+                            <!-- Botón -->
+                            <div class="d-grid">
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="() => MostrarDetalles(pago)">
+                                    <i class="fas fa-eye me-2"></i>Ver Detalles
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Modal de Detalles -->
+@if (pagoSeleccionado != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-receipt me-2"></i>
+                        Detalle del Pago
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <h6 class="fw-bold">@pagoSeleccionado.Articulo?.Titulo</h6>
+                        <p class="text-muted small mb-0">Artículo #@pagoSeleccionado.ArticuloId</p>
+                        <p class="text-muted small">Categoría: @(pagoSeleccionado.Articulo?.Categoria?.Nombre ?? "N/A")</p>
+                    </div>
+
+                    @if (pagoSeleccionado.Articulo?.InstitucionId != null)
+                    {
+                        <div class="mb-3">
+                            <strong>Institución:</strong> @pagoSeleccionado.Articulo.Institucion?.Nombre
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <strong>Fecha de Registro:</strong> @pagoSeleccionado.Pago.Fecha.ToString("dd/MM/yyyy HH:mm")
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Estado:</strong> 
+                        <span class="badge @(pagoSeleccionado.Pago.Estado == "Pendiente" ? "badge-pendiente" : "bg-success")">
+                            @pagoSeleccionado.Pago.Estado
+                        </span>
+                    </div>
+
+                    <div class="card bg-light border-0 p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>Tarifa Base:</strong>
+                            <h4 class="mb-0 text-success">RD$ @pagoSeleccionado.Monto.ToString("N2")</h4>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-3">
+                        <small>
+                            <i class="fas fa-info-circle me-2"></i>
+                            Este monto corresponde a tu tarifa base por el artículo publicado.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CerrarModal">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<DetallePagoPeriodista> pagosPendientes = new();
+    private List<DetallePagoPeriodista> pagosCobrados = new();
+    private List<DetallePagoPeriodista> pagosFiltrados = new();
+    private DetallePagoPeriodista? pagoSeleccionado;
+
+    private string mensajeError = string.Empty;
+    private string filtroTexto = string.Empty;
+    private string filtroEstado = "todos";
+    private bool cargando = true;
+
+    private int periodistaIdActual = 0;
+    private decimal totalPendiente = 0m;
+    private decimal totalCobrado = 0m;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Obtener periodista del usuario actual
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            Console.WriteLine($"PeriodistaId del usuario logueado: {periodistaIdActual}");
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var periodistaIdClaim = user.FindFirst("PeriodistaId");
+                if (periodistaIdClaim != null && int.TryParse(periodistaIdClaim.Value, out int perId))
+                {
+                    periodistaIdActual = perId;
+                }
+                else
+                {
+                    var email = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                    if (!string.IsNullOrEmpty(email))
+                    {
+                        var appUser = await UserManager.FindByEmailAsync(email);
+                        if (appUser?.PeriodistaId != null)
+                        {
+                            periodistaIdActual = appUser.PeriodistaId.Value;
+                        }
+                    }
+                }
+            }
+
+            await CargarPagos();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar datos: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task CargarPagos()
+    {
+        await using var contexto = await DbFactory.CreateDbContextAsync();
+
+        // Cargar pagos pendientes
+        pagosPendientes = await contexto.DetallesPagosPeriodistas
+            .Include(d => d.Pago)
+            .Include(d => d.Articulo)
+                .ThenInclude(a => a.Categoria)
+            .Include(d => d.Articulo.Institucion)
+            .Where(d => d.Pago.PeriodistaId == periodistaIdActual && d.Pago.Estado == "Pendiente")
+            .OrderByDescending(d => d.Pago.Fecha)
+            .ToListAsync();
+
+        // Cargar pagos cobrados
+        pagosCobrados = await contexto.DetallesPagosPeriodistas
+            .Include(d => d.Pago)
+            .Include(d => d.Articulo)
+                .ThenInclude(a => a.Categoria)
+            .Include(d => d.Articulo.Institucion)
+            .Where(d => d.Pago.PeriodistaId == periodistaIdActual && d.Pago.Estado == "Cobrado")
+            .OrderByDescending(d => d.Pago.Fecha)
+            .ToListAsync();
+
+        pagosFiltrados = pagosPendientes;
+        CalcularTotales();
+        AplicarFiltros();
+    }
+
+    private void CalcularTotales()
+    {
+        totalPendiente = pagosPendientes.Sum(p => p.Monto);
+        totalCobrado = pagosCobrados.Sum(p => p.Monto);
+    }
+
+    private void CambiarFiltro(string estado)
+    {
+        filtroEstado = estado;
+        AplicarFiltros();
+    }
+
+    private void AplicarFiltros()
+    {
+        // Aplicar filtro por estado
+        if (filtroEstado == "pendientes")
+        {
+            pagosFiltrados = pagosPendientes;
+        }
+        else if (filtroEstado == "cobrados")
+        {
+            pagosFiltrados = pagosCobrados;
+        }
+        else // "todos"
+        {
+            pagosFiltrados = pagosPendientes.Concat(pagosCobrados).ToList();
+        }
+
+        // Filtro por texto
+        if (!string.IsNullOrWhiteSpace(filtroTexto))
+        {
+            pagosFiltrados = pagosFiltrados.Where(p =>
+                (p.Articulo?.Titulo?.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                p.ArticuloId.ToString().Contains(filtroTexto) ||
+                (p.Articulo?.Institucion?.Nombre?.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) ?? false)
+            ).ToList();
+        }
+    }
+
+    private void MostrarDetalles(DetallePagoPeriodista pago)
+    {
+        pagoSeleccionado = pago;
+    }
+
+    private void CerrarModal()
+    {
+        pagoSeleccionado = null;
+    }
+}

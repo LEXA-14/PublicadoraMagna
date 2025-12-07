@@ -5,6 +5,7 @@
 @inject ArticuloService ArticuloService
 @inject CategoriaService CategoriaService
 @inject PeriodistaService PeriodistaService
+@inject InstitucionService InstitucionService
 @inject ServicioPromocionalService ServicioPromocionalService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
@@ -13,31 +14,120 @@
 
 <PageTitle>@(ArticuloId > 0 ? "Editar Artículo" : "Crear Artículo")</PageTitle>
 
-<div class="container-fluid py-4">
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+        color: white;
+        padding: 40px 0;
+        margin-bottom: 30px;
+    }
+
+    .section-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 24px;
+        border: none;
+    }
+
+    .section-header {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+        color: white;
+        padding: 16px 20px;
+        border-radius: 12px 12px 0 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .section-body {
+        padding: 24px;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #e65100;
+        box-shadow: 0 0 0 0.2rem rgba(230, 81, 0, 0.25);
+    }
+
+    .image-upload-zone {
+        border: 2px dashed #e65100;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        background: #fff3e0;
+        transition: all 0.3s;
+    }
+
+    .image-upload-zone:hover {
+        background: #ffe0b2;
+        border-color: #bf360c;
+    }
+
+    .btn-orange {
+        background: #e65100;
+        border: none;
+        color: white;
+    }
+
+    .btn-orange:hover {
+        background: #bf360c;
+        color: white;
+    }
+
+    .btn-green {
+        background: #2d5f4d;
+        border: none;
+        color: white;
+    }
+
+    .btn-green:hover {
+        background: #103713;
+        color: white;
+    }
+
+    .price-orange {
+        color: #e65100;
+        font-weight: 600;
+    }
+</style>
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-6 fw-bold mb-2">
+                    <i class="bi bi-file-alt me-3"></i>
+                    @(ArticuloId > 0 ? "Editar Artículo" : "Crear Nuevo Artículo")
+                </h1>
+                <p class="mb-0 opacity-75">Completa la información del artículo</p>
+            </div>
+            <div>
+                <a href="/articulos" class="text-white text-decoration-none opacity-75">
+                    <i class="bi bi-arrow-left me-2"></i>Volver
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="container pb-5">
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @errorMessage
+            <button type="button" class="btn-close" @onclick="@(() => errorMessage = string.Empty)"></button>
+        </div>
+    }
+
     <div class="row">
         <div class="col-lg-8">
-            
-            @if (!string.IsNullOrEmpty(errorMessage))
-            {
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    @errorMessage
-                    <button type="button" class="btn-close" @onclick="@(() => errorMessage = string.Empty)"></button>
-                </div>
-            }
-
-           
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-primary bg-opacity-10 p-2 rounded me-3">
-                            <i class="bi bi-file-text text-primary fs-4"></i>
-                        </div>
-                        <div>
-                            <h5 class="mb-0">Información Básica</h5>
-                            <small class="text-muted">Datos principales del artículo</small>
-                        </div>
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="bi bi-file-text fs-4"></i>
+                    <div>
+                        <h5 class="mb-0">Información Básica</h5>
+                        <small class="opacity-75">Datos principales del artículo</small>
                     </div>
-
+                </div>
+                <div class="section-body">
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Título del Artículo <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" @bind="articulo.Titulo" placeholder="Ingrese el título del artículo" />
@@ -53,51 +143,35 @@
                             }
                         </select>
                     </div>
+
+                    @if (esUsuarioInstitucion)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Autor</label>
+                            <input type="text" class="form-control" value="@nombreInstitucion" readonly>
+                            <small class="text-muted">Este artículo será publicado a nombre de tu institución</small>
+                        </div>
+                    }
+
+                    @if (esUsuarioPeriodista)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Autor</label>
+                            <input type="text" class="form-control" value="@nombrePeriodista" readonly>
+                            <small class="text-muted">Este artículo será publicado a tu nombre</small>
+                        </div>
+                    }
                 </div>
             </div>
-
-            <!-- Info Autoría Automática -->
-            @if (esUsuarioInstitucion)
-            {
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <div class="alert alert-primary mb-0">
-                            <i class="bi bi-building fs-5"></i>
-                            <strong class="ms-2">Publicado por:</strong> @nombreInstitucion (Institución)
-                            <br />
-                            <small class="ms-4">Este artículo será publicado a nombre de tu institución</small>
-                        </div>
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="bi bi-align-left fs-4"></i>
+                    <div>
+                        <h5 class="mb-0">Contenido del Artículo</h5>
+                        <small class="opacity-75">Redacción completa del artículo</small>
                     </div>
                 </div>
-            }
-
-            @if (esUsuarioPeriodista)
-            {
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <div class="alert alert-info mb-0">
-                            <i class="bi bi-person-check fs-5"></i>
-                            <strong class="ms-2">Autor:</strong> @nombrePeriodista (Periodista)
-                            <br />
-                            <small class="ms-4">Este artículo será publicado a tu nombre</small>
-                        </div>
-                    </div>
-                </div>
-            }
-
- 
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-primary bg-opacity-10 p-2 rounded me-3">
-                            <i class="bi bi-text-paragraph text-primary fs-4"></i>
-                        </div>
-                        <div>
-                            <h5 class="mb-0">Contenido del Artículo</h5>
-                            <small class="text-muted">Redacción completa del artículo</small>
-                        </div>
-                    </div>
-
+                <div class="section-body">
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Contenido <span class="text-danger">*</span></label>
                         <textarea class="form-control" rows="10" @bind="articulo.Contenido" 
@@ -105,22 +179,53 @@
                     </div>
                 </div>
             </div>
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="bi bi-images fs-4"></i>
+                    <div>
+                        <h5 class="mb-0">Imágenes</h5>
+                        <small class="opacity-75">Sube imágenes para tu artículo</small>
+                    </div>
+                </div>
+                <div class="section-body">
+                    <div class="image-upload-zone mb-3">
+                        <i class="bi bi-cloud-upload fs-1 mb-3" style="color: #e65100;"></i>
+                        <h6>Selecciona una imagen</h6>
+                        <small class="text-muted">Formatos: JPG, PNG, GIF (Máx. 5MB)</small>
+                        <InputFile OnChange="CargarImagen" class="form-control mt-3" accept="image/*" />
+                    </div>
 
-           
+                    @if (articulo.Imagenes.Any())
+                    {
+                        <div class="row">
+                            @foreach (var imagen in articulo.Imagenes)
+                            {
+                                <div class="col-md-4 mb-3">
+                                    <div class="card border-0 shadow-sm">
+                                        <img src="@imagen" class="card-img-top" style="height: 200px; object-fit: cover; border: 2px solid #e65100; border-radius: 8px 8px 0 0;" alt="Imagen" />
+                                        <div class="card-body p-2">
+                                            <button type="button" class="btn btn-sm btn-danger w-100" @onclick="@(() => EliminarImagen(imagen))">
+                                                <i class="bi bi-trash"></i> Eliminar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
             @if (!esUsuarioPeriodista)
             {
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="bg-warning bg-opacity-10 p-2 rounded me-3">
-                                <i class="bi bi-megaphone text-warning fs-4"></i>
-                            </div>
-                            <div>
-                                <h5 class="mb-0">Servicios Promocionales</h5>
-                                <small class="text-muted">Opcional - Aumenta la visibilidad del artículo</small>
-                            </div>
+                <div class="section-card">
+                    <div class="section-header">
+                        <i class="bi bi-megaphone fs-4"></i>
+                        <div>
+                            <h5 class="mb-0">Servicios Promocionales</h5>
+                            <small class="opacity-75">Opcional - Aumenta la visibilidad del artículo</small>
                         </div>
-
+                    </div>
+                    <div class="section-body">
                         @if (!string.IsNullOrEmpty(errorServicio))
                         {
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -141,8 +246,8 @@
                                 </select>
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
-                                <button type="button" class="btn btn-primary w-100" @onclick="AgregarServicio">
-                                    <i class="bi bi-plus-circle"></i> Agregar
+                                <button type="button" class="btn btn-orange w-100" @onclick="AgregarServicio">
+                                    <i class="bi bi-plus-circle me-2"></i>Agregar
                                 </button>
                             </div>
                         </div>
@@ -164,7 +269,7 @@
                                             var servicio = listaServiciosPromocionales.FirstOrDefault(s => s.ServicioPromocionalId == detalle.ServicioPromocionalId);
                                             <tr>
                                                 <td>@(servicio?.Nombre ?? "N/A")</td>
-                                                <td class="text-end">RD$ @detalle.PrecioAplicado.ToString("N0")</td>
+                                                <td class="text-end price-orange">RD$ @detalle.PrecioAplicado.ToString("N0")</td>
                                                 <td class="text-end">
                                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => EliminarServicio(detalle)">
                                                         <i class="bi bi-trash"></i>
@@ -179,60 +284,26 @@
                     </div>
                 </div>
             }
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-info bg-opacity-10 p-2 rounded me-3">
-                            <i class="bi bi-image text-info fs-4"></i>
-                        </div>
-                        <div>
-                            <h5 class="mb-0">Imágenes</h5>
-                            <small class="text-muted">Sube imágenes para tu artículo</small>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <InputFile OnChange="CargarImagen" class="form-control" accept="image/*" />
-                        <small class="text-muted">Formatos: JPG, PNG, GIF (máx. 5MB)</small>
-                    </div>
-
-                    @if (articulo.Imagenes.Any())
-                    {
-                        <div class="row">
-                            @foreach (var imagen in articulo.Imagenes)
-                            {
-                                <div class="col-md-4 mb-3">
-                                    <div class="card">
-                                        <img src="@imagen" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Imagen del artículo" />
-                                        <div class="card-body p-2">
-                                            <button type="button" class="btn btn-sm btn-danger w-100" @onclick="@(() => EliminarImagen(imagen))">
-                                                <i class="bi bi-trash"></i> Eliminar
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
-            </div>
         </div>
-
         <div class="col-lg-4">
-            <div class="card mb-4 sticky-top" style="top: 20px;">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-success bg-opacity-10 p-2 rounded me-3">
-                            <i class="bi bi-currency-dollar text-success fs-4"></i>
-                        </div>
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                  
+                    <div class="d-flex justify-content-between align-items-start mb-4">
                         <div>
-                            <h5 class="mb-0">Resumen de Costos</h5>
+                            <h5 class="mb-1 fw-bold">@(string.IsNullOrEmpty(articulo.Titulo) ? "Nuevo Artículo" : articulo.Titulo)</h5>
+                            <small class="text-muted">@(ArticuloId > 0 ? $"#{ArticuloId}" : "Borrador") / @categoriaNombre</small>
                         </div>
+                        <span class="badge" style="background: #fff3e0; color: #e65100; padding: 8px 16px; border-radius: 20px;">
+                            Pendiente
+                        </span>
                     </div>
+
+                    <hr class="my-4">
 
                     @if (esUsuarioPeriodista)
                     {
-                        <div class="alert alert-success">
+                        <div class="alert alert-success border-0">
                             <h6 class="alert-heading">
                                 <i class="bi bi-check-circle"></i> ¡Publicación Gratuita!
                             </h6>
@@ -240,92 +311,86 @@
                             <hr />
                             <p class="mb-0">
                                 <i class="bi bi-cash-coin"></i>
-                                <strong>Ganancia por aprobación:</strong> 45% del precio base de la categoría
+                                <strong>Ganancia por aprobación:</strong> 45% del precio base
                             </p>
                             @if (precioBase > 0)
                             {
                                 <p class="mb-0 mt-2">
                                     <small class="text-muted">Categoría @categoriaNombre (RD$ @precioBase.ToString("N0"))</small><br />
-                                    <strong class="text-success fs-5">Recibirás: RD$ @((precioBase * 0.45m).ToString("N0"))</strong>
+                                    <strong class="price-orange fs-5">Recibirás: RD$ @((precioBase * 0.45m).ToString("N0"))</strong>
                                 </p>
                             }
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-orange" @onclick="@(() => Guardar(EstadoArticulo.Pendiente))">
+                                <i class="bi bi-send me-2"></i>Enviar Artículo
+                            </button>
+                            <button type="button" class="btn btn-green" @onclick="@(() => Guardar(EstadoArticulo.Borrador))">
+                                <i class="bi bi-save me-2"></i>Guardar Borrador
+                            </button>
+                            <a href="/articulos" class="btn btn-secondary">
+                                <i class="bi bi-x me-2"></i>Cancelar
+                            </a>
                         </div>
                     }
                     else
                     {
-                        <div class="border-bottom pb-2 mb-2">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <div>
-                                    <i class="bi bi-tag"></i>
-                                    <span class="ms-1">Precio Base</span>
+                      
+                        <div class="mb-4">
+                            @if (precioBase > 0)
+                            {
+                                <div class="d-flex justify-content-between align-items-center py-2">
+                                    <span>Precio base categoría</span>
+                                    <strong>RD$ @precioBase.ToString("N2")</strong>
                                 </div>
-                                <strong class="@(precioBase > 0 ? "text-dark" : "text-muted")">
-                                    @(precioBase > 0 ? $"RD$ {precioBase:N0}" : "$0.00")
-                                </strong>
+                            }
+
+                            @foreach (var detalle in articulo.ServiciosPromocionales)
+                            {
+                                var servicio = listaServiciosPromocionales.FirstOrDefault(s => s.ServicioPromocionalId == detalle.ServicioPromocionalId);
+                                <div class="d-flex justify-content-between align-items-center py-2">
+                                    <span>@(servicio?.Nombre ?? "Servicio")</span>
+                                    <strong>RD$ @detalle.PrecioAplicado.ToString("N2")</strong>
+                                </div>
+                            }
+
+                            <div class="d-flex justify-content-between align-items-center py-2">
+                                <span>Tarifa periodista</span>
+                                <strong>RD$ 0.00</strong>
                             </div>
-                            @if (precioBase == 0)
-                            {
-                                <small class="text-muted d-block">No seleccionada</small>
-                            }
-                            else
-                            {
-                                <small class="text-muted d-block">@categoriaNombre</small>
-                            }
                         </div>
 
-                        @if (totalServicios > 0)
-                        {
-                            <div class="border-bottom pb-2 mb-2">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <i class="bi bi-megaphone"></i>
-                                        <span class="ms-1">Servicios Promocionales</span>
-                                    </div>
-                                    <strong>RD$ @totalServicios.ToString("N0")</strong>
-                                </div>
-                            </div>
-                        }
+                        <hr class="my-3">
 
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <div>
-                                <i class="bi bi-calculator"></i>
-                                <span class="ms-1 fw-bold">Total a Pagar</span>
-                            </div>
-                            <h4 class="mb-0 text-primary">RD$ @((precioBase + totalServicios).ToString("N0"))</h4>
+                      
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="mb-0 fw-bold">Total</h5>
+                            <h4 class="mb-0 fw-bold" style="color: #2e7d32;">RD$ @((precioBase + totalServicios).ToString("N2"))</h4>
+                        </div>
+
+                        <div class="d-grid gap-2">
+
+                            <button type="button" class="btn text-white" style="background: #e65100;" @onclick="@(() => Guardar(EstadoArticulo.Pendiente))">
+                                <i class="bi bi-send"></i>
+                        
+                                Enviar para Revisión
+
+                            </button>
+                            <button type="button" class="btn btn-green" @onclick="@(() => Guardar(EstadoArticulo.Borrador))">
+                                <i class="bi bi-save me-2"></i>Guardar Borrador
+                            </button>
+                            <a href="/articulos" class="btn btn-secondary">
+                                <i class="bi bi-x me-2"></i>Cancelar
+                            </a>
                         </div>
                     }
-
-                    <hr />
-
-                    <div class="alert @(esUsuarioPeriodista ? "alert-info" : "alert-warning") py-2 mb-0">
-                        <small>
-                            <i class="bi bi-info-circle"></i>
-                            <strong>Estado:</strong> @(esUsuarioPeriodista ? "Pendiente de aprobación del editor" : "Pendiente de pago")
-                        </small>
-                    </div>
                 </div>
             </div>
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="mb-3">Acciones</h6>
-                    
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-primary" @onclick="@(() => Guardar(EstadoArticulo.Borrador))">
-                            <i class="bi bi-download"></i> Guardar Borrador
-                        </button>
-                        <button type="button" class="btn btn-success" @onclick="@(() => Guardar(EstadoArticulo.Pendiente))">
-                            <i class="bi bi-send"></i> Enviar para Revisión
-                        </button>
-                        <a href="/articulos" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Cancelar
-                        </a>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
 </div>
+
 
 @code {
 
@@ -415,7 +480,11 @@
                 }
             }
         }
-        nombreInstitucion = user.FindFirst(ClaimTypes.Name)?.Value ?? "Institución";
+        if (institucionIdActual > 0)
+        {
+            var institucion = await InstitucionService.Buscar(institucionIdActual);
+            nombreInstitucion = institucion?.Nombre ?? "Institucion";
+        }
     }
 
     private async Task CargarDatosPeriodista(ClaimsPrincipal user)
