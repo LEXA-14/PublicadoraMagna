@@ -40,7 +40,10 @@ public class DataSeederService
         // 6. Crear servicios promocionales de prueba
         await CrearServiciosPromocionales();
 
- 
+        await CrearEditorPrueba();
+
+
+
     }
 
     private async Task CrearRoles()
@@ -172,6 +175,8 @@ public class DataSeederService
         }
     }
 
+
+
     private async Task CrearCategorias()
     {
         if (!_context.Categorias.Any())
@@ -190,7 +195,33 @@ public class DataSeederService
             Console.WriteLine($"✅ {categorias.Count} categorías creadas");
         }
     }
-   
+    private async Task CrearEditorPrueba()
+    {
+        var editorEmail = "editor@publicadora.com";
+        var editorUser = await _userManager.FindByEmailAsync(editorEmail);
+
+        if (editorUser == null)
+        {
+            editorUser = new ApplicationUser
+            {
+                UserName = editorEmail,
+                Email = editorEmail,
+                NombreCompleto = "Editor Prueba",
+                EmailConfirmed = true,
+                //FechaRegistro = DateTime.Now
+            };
+
+            var result = await _userManager.CreateAsync(editorUser, "Prueba123@");
+
+            if (result.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(editorUser, AppRoles.Editor);
+                Console.WriteLine($"✅ Editor creado: {editorEmail} / Prueba123@");
+            }
+        }
+    }
+
+
     private async Task CrearServiciosPromocionales()
     {
         if (!_context.ServiciosPromocionales.Any())
