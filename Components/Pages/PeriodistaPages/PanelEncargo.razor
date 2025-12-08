@@ -1,4 +1,5 @@
 ﻿@page "/periodista/encargos"
+@attribute [Authorize(Roles = "Periodista")]
 @layout PeriodistaLayout
 @inject EncargoArticuloService EncargoService
 @inject ArticuloService ArticuloService
@@ -9,32 +10,6 @@
 
 <PageTitle>Encargos Propuestos</PageTitle>
 
-<style>
-    .bg-gradient-green {
-        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
-    }
-
-    .bg-gradient-orange {
-        background: linear-gradient(135deg, #ff6b35 0%, #e65100 100%);
-    }
-
-    .btn-orange {
-        background-color: #e65100;
-        color: white;
-        border: none;
-    }
-
-        .btn-orange:hover {
-            background-color: #bf360c;
-            color: white;
-        }
-
-    .encargo-card {
-        border-left: 4px solid #2d5f4d;
-    }
-</style>
-
-<!-- Page Header -->
 <div class="bg-gradient-green text-white py-4 mb-4">
     <div class="container">
         <div class="d-flex align-items-center">
@@ -50,7 +25,6 @@
 </div>
 
 <div class="container pb-5">
-    <!-- Stats Cards -->
     <div class="row mb-4">
         <div class="col-md-3 mb-3">
             <div class="card border-0 shadow-sm bg-gradient-green text-white">
@@ -113,8 +87,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Filters -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <div class="row">
@@ -143,8 +115,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Total -->
     <div class="mb-3">
         <span class="text-muted">Total registros: </span>
         <strong style="color: #e65100;">@encargosPendientes.Count()</strong>
@@ -167,7 +137,6 @@
     }
     else
     {
-        <!-- Encargos List -->
         @foreach (var encargo in encargosPendientes)
         {
             <div class="card border-0 shadow-sm mb-3 encargo-card">
@@ -240,8 +209,6 @@
         }
     }
 </div>
-
-<!-- Modal Ver Detalles -->
 @if (encargoSeleccionado != null && detallesModal)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
@@ -252,7 +219,6 @@
                     <button type="button" class="btn-close" @onclick="CerrarModal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Info Grid -->
                     <div class="row mb-4">
                         <div class="col-md-6 mb-3">
                             <div class="text-muted small mb-1">Institución</div>
@@ -279,8 +245,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Descripción -->
                     <div class="mb-4">
                         <h6 class="fw-bold mb-3">Descripción del Encargo</h6>
                         <div class="bg-light p-3 rounded">
@@ -288,7 +252,6 @@
                         </div>
                     </div>
 
-                    <!-- Servicios Promocionales -->
                     @if (encargoSeleccionado.ServiciosPromocionales?.Any() == true)
                     {
                         <div class="mb-4">
@@ -379,7 +342,7 @@
 
     private void AceptarEncargo(EncargoArticulo encargo)
     {
-        // Redirigir a crear artículo con parámetros del encargo
+      
         navigationManager.NavigateTo($"/articulos/crear?encargoId={encargo.EncargoArticuloId}");
     }
 
@@ -409,3 +372,27 @@
         }
     }
 }
+<style>
+    .bg-gradient-green {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+    }
+
+    .bg-gradient-orange {
+        background: linear-gradient(135deg, #ff6b35 0%, #e65100 100%);
+    }
+
+    .btn-orange {
+        background-color: #e65100;
+        color: white;
+        border: none;
+    }
+
+        .btn-orange:hover {
+            background-color: #bf360c;
+            color: white;
+        }
+
+    .encargo-card {
+        border-left: 4px solid #2d5f4d;
+    }
+</style>

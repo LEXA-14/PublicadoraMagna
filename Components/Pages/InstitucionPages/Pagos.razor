@@ -8,44 +8,6 @@
 @rendermode InteractiveServer
 
 <PageTitle>Panel de Pagos</PageTitle>
-
-<style>
-    .page-header {
-        background: linear-gradient(135deg, #2d5f4d 0%, #3a7a5f 100%);
-        color: white;
-        padding: 40px 0;
-        margin-bottom: 30px;
-    }
-    .stat-card.primary {
-        background: linear-gradient(135deg, #2d5f4d 0%, #3a7a5f 100%);
-        color: white;
-    }
-    .stat-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        margin-bottom: 12px;
-    }
-    .stat-card.primary .stat-icon {
-        background: rgba(255,255,255,0.2);
-    }
-    .stat-icon.warning {
-        background: #fff3e0;
-        color: #e65100;
-    }
-    .stat-icon.success {
-        background: #e8f5e9;
-        color: #2e7d32;
-    }
-    .badge-pendiente {
-        background: #fff3e0;
-        color: #f57c00;
-    }
-</style>
 <div class="page-header">
     <div class="container">
         <div class="d-flex justify-content-between align-items-center">
@@ -152,8 +114,6 @@
             </ul>
         </div>
     </div>
-
-  
     @if (cargando)
     {
         <div class="text-center py-5">
@@ -178,7 +138,6 @@
                 <div class="col">
                     <div class="card h-100 border-0 shadow-sm order-card">
                         <div class="card-body">
-                            <!-- Header -->
                             <div class="d-flex align-items-start mb-3 pb-3 border-bottom">
                                 <div class="bg-light rounded p-2 me-3">
                                     <i class="fas fa-file-alt text-muted"></i>
@@ -192,14 +151,10 @@
                                     @(articulo.Estado == EstadoArticulo.Pagado ? "Pagado" : "Pendiente")
                                 </span>
                             </div>
-
-                            <!-- Fecha -->
                             <div class="d-flex justify-content-between text-muted small mb-3">
                                 <span>@articulo.FechaPublicacion?.ToString("ddd, dd MMM yyyy", new System.Globalization.CultureInfo("es-ES"))</span>
                                 <span>@articulo.FechaPublicacion?.ToString("hh:mm tt")</span>
                             </div>
-
-                            <!-- Items -->
                             <div class="mb-3">
                                 <table class="table table-sm table-borderless mb-0">
                                     <tbody>
@@ -221,14 +176,11 @@
                                     </tbody>
                                 </table>
                             </div>
-
-                            <!-- Total -->
                             <div class="d-flex justify-content-between align-items-center pt-3 border-top mb-3">
                                 <span class="fw-bold">Total</span>
                                 <h5 class="mb-0 text-success">RD$ @CalcularTotal(articulo).ToString("N2")</h5>
                             </div>
 
-                            <!-- Botones -->
                             <div class="d-grid gap-2">
                                 <button class="btn btn-outline-secondary btn-sm" @onclick="() => MostrarDetalles(articulo)">
                                     <i class="fas fa-eye me-2"></i>Ver Detalles
@@ -244,8 +196,6 @@
         </div>
     }
 </div>
-
-<!-- Modal de Detalles -->
 @if (articuloSeleccionado != null)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
@@ -489,3 +439,46 @@
         NavigationManager.NavigateTo($"/pagos/procesar/{articuloId}");
     }
 }
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #2d5f4d 0%, #3a7a5f 100%);
+        color: white;
+        padding: 40px 0;
+        margin-bottom: 30px;
+    }
+
+    .stat-card.primary {
+        background: linear-gradient(135deg, #2d5f4d 0%, #3a7a5f 100%);
+        color: white;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 12px;
+    }
+
+    .stat-card.primary .stat-icon {
+        background: rgba(255,255,255,0.2);
+    }
+
+    .stat-icon.warning {
+        background: #fff3e0;
+        color: #e65100;
+    }
+
+    .stat-icon.success {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .badge-pendiente {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+</style>

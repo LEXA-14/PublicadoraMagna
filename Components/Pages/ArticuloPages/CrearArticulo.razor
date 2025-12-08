@@ -1,9 +1,5 @@
 @page "/articulos/crear"
 @page "/articulos/editar/{ArticuloId:int}"
-
-@using Microsoft.AspNetCore.Identity
-@using Microsoft.AspNetCore.Components.Forms
-@using PublicadoraMagna.Components.Pages.AdminPages
 @inject ArticuloService ArticuloService
 @inject CategoriaService CategoriaService
 @inject PeriodistaService PeriodistaService
@@ -14,6 +10,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager navigationManager
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "Periodista,AdminInstitucion")]
 
 <PageTitle>@(ArticuloId > 0 ? "Editar Artículo" : "Crear Artículo")</PageTitle>
 

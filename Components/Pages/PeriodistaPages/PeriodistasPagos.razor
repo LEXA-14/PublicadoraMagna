@@ -1,4 +1,5 @@
 @page "/periodista/pagos"
+@attribute [Authorize(Roles = "Periodista")]
 @layout PeriodistaLayout
 @inject ArticuloService ArticuloService
 @inject AuthenticationStateProvider AuthProvider
@@ -8,46 +9,6 @@
 @rendermode InteractiveServer
 
 <PageTitle>Mis Pagos - Periodista</PageTitle>
-
-<style>
-    .page-header {
-        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
-        color: white;
-        padding: 40px 0;
-        margin-bottom: 30px;
-    }
-    .stat-card.primary {
-        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
-        color: white;
-    }
-    .stat-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        margin-bottom: 12px;
-    }
-    .stat-card.primary .stat-icon {
-        background: rgba(255,255,255,0.2);
-    }
-    .stat-icon.warning {
-        background: #fff3e0;
-        color: #e65100;
-    }
-    .stat-icon.success {
-        background: #e8f5e9;
-        color: #2e7d32;
-    }
-    .badge-pendiente {
-        background: #fff3e0;
-        color: #f57c00;
-    }
-</style>
-
-<!-- Page Header -->
 <div class="page-header">
     <div class="container">
         <div class="d-flex justify-content-between align-items-center">
@@ -66,8 +27,6 @@
         </div>
     </div>
 </div>
-
-<!-- Main Content -->
 <div class="container py-4">
     @if (!string.IsNullOrEmpty(mensajeError))
     {
@@ -76,8 +35,6 @@
             <button type="button" class="btn-close" @onclick="@(() => mensajeError = string.Empty)"></button>
         </div>
     }
-
-    <!-- Stats Cards -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card stat-card primary h-100 border-0 shadow-sm">
@@ -116,8 +73,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Search Section -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <h5 class="card-title mb-3">Mis Artículos Publicados</h5>
@@ -156,8 +111,6 @@
             </ul>
         </div>
     </div>
-
-    <!-- Orders Grid -->
     @if (cargando)
     {
         <div class="text-center py-5">
@@ -182,7 +135,6 @@
                 <div class="col">
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="card-body">
-                            <!-- Header -->
                             <div class="d-flex align-items-start mb-3 pb-3 border-bottom">
                                 <div class="bg-light rounded p-2 me-3">
                                     <i class="fas fa-file-alt text-muted"></i>
@@ -197,7 +149,6 @@
                                 </span>
                             </div>
 
-                            <!-- Fecha -->
                             <div class="mb-3">
                                 <small class="text-muted">
                                     <i class="fas fa-calendar me-1"></i>
@@ -205,7 +156,6 @@
                                 </small>
                             </div>
 
-                            <!-- Institución -->
                             @if (pago.Articulo?.InstitucionId != null)
                             {
                                 <div class="mb-3">
@@ -215,14 +165,11 @@
                                     </small>
                                 </div>
                             }
-
-                            <!-- Monto -->
                             <div class="d-flex justify-content-between align-items-center pt-3 border-top mb-3">
                                 <span class="fw-bold">A Cobrar</span>
                                 <h5 class="mb-0 text-success">RD$ @pago.Monto.ToString("N2")</h5>
                             </div>
 
-                            <!-- Botón -->
                             <div class="d-grid">
                                 <button class="btn btn-outline-secondary btn-sm" @onclick="() => MostrarDetalles(pago)">
                                     <i class="fas fa-eye me-2"></i>Ver Detalles
@@ -235,8 +182,6 @@
         </div>
     }
 </div>
-
-<!-- Modal de Detalles -->
 @if (pagoSeleccionado != null)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
@@ -317,10 +262,8 @@
     {
         try
         {
-            // Obtener periodista del usuario actual
             var authState = await AuthProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-            Console.WriteLine($"PeriodistaId del usuario logueado: {periodistaIdActual}");
             if (user.Identity?.IsAuthenticated == true)
             {
                 var periodistaIdClaim = user.FindFirst("PeriodistaId");
@@ -358,7 +301,6 @@
     {
         await using var contexto = await DbFactory.CreateDbContextAsync();
 
-        // Cargar pagos pendientes
         pagosPendientes = await contexto.DetallesPagosPeriodistas
             .Include(d => d.Pago)
             .Include(d => d.Articulo)
@@ -368,7 +310,6 @@
             .OrderByDescending(d => d.Pago.Fecha)
             .ToListAsync();
 
-        // Cargar pagos cobrados
         pagosCobrados = await contexto.DetallesPagosPeriodistas
             .Include(d => d.Pago)
             .Include(d => d.Articulo)
@@ -397,7 +338,7 @@
 
     private void AplicarFiltros()
     {
-        // Aplicar filtro por estado
+       
         if (filtroEstado == "pendientes")
         {
             pagosFiltrados = pagosPendientes;
@@ -406,12 +347,10 @@
         {
             pagosFiltrados = pagosCobrados;
         }
-        else // "todos"
+        else 
         {
             pagosFiltrados = pagosPendientes.Concat(pagosCobrados).ToList();
         }
-
-        // Filtro por texto
         if (!string.IsNullOrWhiteSpace(filtroTexto))
         {
             pagosFiltrados = pagosFiltrados.Where(p =>
@@ -432,3 +371,46 @@
         pagoSeleccionado = null;
     }
 }
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+        color: white;
+        padding: 40px 0;
+        margin-bottom: 30px;
+    }
+
+    .stat-card.primary {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+        color: white;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 12px;
+    }
+
+    .stat-card.primary .stat-icon {
+        background: rgba(255,255,255,0.2);
+    }
+
+    .stat-icon.warning {
+        background: #fff3e0;
+        color: #e65100;
+    }
+
+    .stat-icon.success {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .badge-pendiente {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+</style>
