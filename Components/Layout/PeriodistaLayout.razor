@@ -1,0 +1,45 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@inherits LayoutComponentBase
+@attribute [Authorize(Roles = "Periodista")]
+
+<div class="d-flex">
+    <div class="bg-dark text-white p-3" style="width: 250px; min-height: 100vh; position: fixed;">
+        <h4 class="mb-4">
+            <i class="bi bi-file-earmark-text me-2"></i>Publicadora
+        </h4>
+
+        <nav class="nav flex-column">
+            <a class="nav-link text-white" href="/periodista/dashboard">
+                <i class="bi bi-speedometer2 me-2"></i>Dashboard
+            </a>
+
+            <a class="nav-link text-white" href="/periodista/encargos">
+                <i class="bi bi-briefcase me-2"></i>Encargos
+            </a>
+
+            <a class="nav-link text-white" href="/periodista/articulos">
+                <i class="bi bi-file-text me-2"></i>Mis Artículos
+            </a>
+
+            <a class="nav-link text-white" href="/periodista/pagos">
+                <i class="bi bi-currency-dollar me-2"></i>Pagos
+            </a>
+
+            <hr class="border-secondary" />
+
+            <a class="nav-link text-white" href="/Account/Logout">
+                <i class="bi bi-box-arrow-right me-2"></i>Salir
+            </a>
+        </nav>
+    </div>
+    <div class="flex-grow-1" style="margin-left: 250px;">
+        <main class="p-4">
+            @Body
+        </main>
+
+        <footer class="bg-light text-center py-3 border-top">
+            <small>&copy; 2025 Publicadora Magna</small>
+        </footer>
+    </div>
+</div>
+

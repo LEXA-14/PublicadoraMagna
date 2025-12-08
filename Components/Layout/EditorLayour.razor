@@ -1,0 +1,59 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@inherits LayoutComponentBase
+@attribute [Authorize(Roles = "Editor")]
+
+<div class="d-flex">
+    <aside class="bg-gradient-orange text-white p-3"
+           style="width: 240px; min-height: 100vh; position: fixed;">
+        <h4 class="mb-4 d-flex align-items-center">
+            <i class="bi bi-pencil-square me-2 header-icon"></i>
+            Editor
+        </h4>
+
+        <nav class="nav flex-column">
+            <a class="nav-link text-white" href="/editor/dashboard">
+                <i class="bi bi-speedometer2 me-2"></i>Dashboard
+            </a>
+
+            <a class="nav-link text-white" href="/editor/articulos-pendientes">
+                <i class="bi bi-hourglass-split me-2"></i>Pendientes
+            </a>
+
+            <a class="nav-link text-white" href="/editor/articulos-aprobados">
+                <i class="bi bi-check2-circle me-2"></i>Aprobados
+            </a>
+
+            <hr class="border-light" />
+
+            <a class="nav-link text-white" href="/Account/Logout">
+                <i class="bi bi-box-arrow-right me-2"></i>Salir
+            </a>
+        </nav>
+    </aside>
+
+    <div class="flex-grow-1" style="margin-left: 240px;">
+        <main class="p-4">
+            @Body
+        </main>
+
+        <footer class="bg-light text-center py-3 border-top">
+            <small>&copy; 2025 Publicadora Magna</small>
+        </footer>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-orange {
+        background: linear-gradient(135deg, #ff6b35 0%, #e65100 100%);
+    }
+
+    .header-icon {
+        width: 40px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+    }
+
+    </style>
