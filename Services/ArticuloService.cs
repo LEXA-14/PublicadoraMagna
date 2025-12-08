@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PublicadoraMagna.Data;
 using PublicadoraMagna.Model;
+using System.Linq.Expressions;
 
 namespace PublicadoraMagna.Services;
 
@@ -8,13 +9,6 @@ public class ArticuloService(IDbContextFactory<ApplicationDbContext> dbFactory, 
 {
     public async Task<bool> Guardar(Articulo articulo)
     {
-       
-        if (string.IsNullOrWhiteSpace(articulo.Titulo))
-            throw new Exception("El título del artículo es requerido");
-        if (string.IsNullOrWhiteSpace(articulo.Contenido))
-            throw new Exception("El contenido del artículo es requerido");
-        if (articulo.CategoriaId <= 0)
-            throw new Exception("Debe seleccionar una categoría");
 
         if (!await Existe(articulo.ArticuloId))
         {
@@ -92,11 +86,48 @@ public class ArticuloService(IDbContextFactory<ApplicationDbContext> dbFactory, 
     public async Task<bool> Eliminar(int id)
     {
         await using var contexto = await dbFactory.CreateDbContextAsync();
-        var entidad = await contexto.Articulos.FindAsync(id);
-        if (entidad == null) return false;
+        var articulo = await contexto.Articulos
+            .Include(a => a.ServiciosPromocionales)
+            .FirstOrDefaultAsync(a => a.ArticuloId == id);
 
-        contexto.Articulos.Remove(entidad);
-        return await contexto.SaveChangesAsync() > 0;
+        if (articulo == null) return false;
+
+        try
+        {
+            if (articulo.ServiciosPromocionales.Any())
+            {
+                contexto.ArticuloServicioPromocional.RemoveRange(articulo.ServiciosPromocionales);
+            }
+            var detallesPagoInstitucion = await contexto.DetallesPagosInstitucion
+                .Where(d => d.ArticuloId == id)
+                .ToListAsync();
+            if (detallesPagoInstitucion.Any())
+            {
+                contexto.DetallesPagosInstitucion.RemoveRange(detallesPagoInstitucion);
+            }
+            var detallesPagoPeriodista = await contexto.DetallesPagosPeriodistas
+                .Where(d => d.ArticuloId == id)
+                .ToListAsync();
+            if (detallesPagoPeriodista.Any())
+            {
+                contexto.DetallesPagosPeriodistas.RemoveRange(detallesPagoPeriodista);
+            }
+            var encargos = await contexto.EncargoArticulos
+                .Where(e => e.ArticuloId == id)
+                .ToListAsync();
+            foreach (var encargo in encargos)
+            {
+                encargo.ArticuloId = null;
+            }
+            contexto.Articulos.Remove(articulo);
+
+            return await contexto.SaveChangesAsync() > 0;
+        }
+        catch (Exception ex)
+        {
+            
+            throw new Exception($"Error al eliminar artículo: {ex.Message}");
+        }
     }
 
     public async Task<List<Articulo>> ListarPorEstado(EstadoArticulo estado)
@@ -180,7 +211,21 @@ public class ArticuloService(IDbContextFactory<ApplicationDbContext> dbFactory, 
             .FirstOrDefaultAsync(a => a.ArticuloId == id);
     }
 
- 
+    public async Task<List<Articulo>> GetLista(Expression<Func<Articulo, bool>> criterio)
+    {
+        await using var contexto = await dbFactory.CreateDbContextAsync();
+        return await contexto.Articulos
+            .Include(a => a.Categoria)
+            .Include(a => a.Institucion)
+            .Include(a => a.Periodista)
+            .Include(a => a.ServiciosPromocionales)
+                .ThenInclude(asp => asp.ServicioPromocional)
+            .Where(criterio)
+            .OrderByDescending(a => a.FechaCreacion)
+            .ToListAsync();
+    }
+
+
 }
 
 

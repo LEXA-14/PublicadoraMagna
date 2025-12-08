@@ -1,179 +1,133 @@
-@page "/admin/instituciones"
-@rendermode InteractiveServer
 
+@page "/admin/instituciones"
+@layout AdminLayout
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
 @inject InstitucionService InstitucionService
 @inject NavigationManager Navigation
 
-
 <PageTitle>Gestión de Instituciones</PageTitle>
 
-<div class="container-fluid py-4">
-    <!-- Header con botón -->
+<div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Gestión de Instituciones</h2>
-        <button class="btn btn-primary" @onclick="IrACrear">
+        <h2 class="fw-bold text-magna-dark"><i class="bi bi-building me-2"></i>Gestión de Instituciones</h2>
+        <button class="btn btn-magna-orange shadow-sm" @onclick="IrACrear">
             <i class="bi bi-plus-circle"></i> Nueva Institución
         </button>
     </div>
 
-    <!-- Resumen -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h6 class="card-title">Total Instituciones</h6>
-                    <h2>@instituciones.Count</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h6 class="card-title">Activas</h6>
-                    <h2>@instituciones.Count</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <h6 class="card-title">Usuarios Totales</h6>
-                    <h2>@totalUsuarios</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <h6 class="card-title">Artículos Totales</h6>
-                    <h2>@totalArticulos</h2>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <div class="row mb-3">
-        <div class="col-md-6">
-            <div class="input-group">
-                <input type="text" class="form-control" placeholder="Buscar institución..." 
-                       @bind="filtro" @bind:event="oninput" @onkeyup="FiltrarInstituciones" />
-                <button class="btn btn-outline-secondary" type="button" @onclick="FiltrarInstituciones">
-                    <i class="bi bi-search"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-
-    @if (!string.IsNullOrEmpty(mensaje))
+    @if (cargando)
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @mensaje
-            <button type="button" class="btn-close" @onclick="@(() => mensaje = string.Empty)"></button>
+        <div class="text-center py-5">
+            <div class="spinner-border text-magna-dark" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
         </div>
     }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card card-stat bg-magna-dark text-white shadow">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-building me-1"></i> Total Instituciones</h5>
+                        <h2>@InstitucionesFiltradas.Count</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-stat bg-magna-orange text-white shadow">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-people me-1"></i> Usuarios Totales</h5>
+                        <h2>@instituciones.Sum(i => i.Usuarios?.Count ?? 0)</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-stat bg-magna-light-green shadow">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-file-earmark-text me-1"></i> Artículos Totales</h5>
+                        <h2 class="text-magna-dark">@instituciones.Sum(i => i.Articulos?.Count ?? 0)</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card mb-4 shadow-sm p-3">
+            <div class="row g-2 align-items-end">
+            
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold small"><i class="bi bi-calendar me-1"></i>Desde</label>
+                    <InputDate class="form-control" @bind-Value="fechaDesde" />
+                </div>
+
+               
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold small"><i class="bi bi-calendar me-1"></i>Hasta</label>
+                    <InputDate class="form-control" @bind-Value="fechaHasta" />
+                </div>
+
+            
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold small"><i class="bi bi-search me-1"></i>Búsqueda</label>
+                    <div class="input-group">
+                        <input class="form-control" placeholder="Buscar por nombre, RNC o email..." @bind="terminoBusqueda" />
+                        <button class="btn btn-magna-orange" @onclick="Buscar">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
  
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Lista de Instituciones</h5>
-        </div>
-        <div class="card-body">
-            @if (cargando)
-            {
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
+        @if (!InstitucionesFiltradas.Any())
+        {
+            <div class="alert alert-info shadow-sm">
+                <i class="bi bi-info-circle"></i> No hay instituciones que coincidan con los filtros aplicados.
+            </div>
+        }
+        else
+        {
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-magna-dark text-white">
+                    <i class="bi bi-list-ul me-2"></i> Listado (Mostrando @InstitucionesFiltradas.Count)
                 </div>
-            }
-            else if (!institucionesFiltradas.Any())
-            {
-                <div class="text-center py-5">
-                    <p class="text-muted">No hay instituciones registradas</p>
-                    <button class="btn btn-primary" @onclick="IrACrear">
-                        Crear Primera Institución
-                    </button>
-                </div>
-            }
-            else
-            {
-                @foreach (var institucion in institucionesFiltradas)
-                {
-                    <div class="border rounded p-3 mb-3">
-                        <div class="row">
-                            <div class="col-md-8">
-                                <h5 class="mb-2">@institucion.Nombre</h5>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <small class="text-muted">
-                                            <i class="bi bi-file-text"></i> RNC: @(string.IsNullOrEmpty(institucion.Rnc) ? "N/A" : institucion.Rnc)
-                                        </small>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <small class="text-muted">
-                                            <i class="bi bi-telephone"></i> @(string.IsNullOrEmpty(institucion.Telefono) ? "N/A" : institucion.Telefono)
-                                        </small>
-                                    </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        @foreach (var institucion in InstitucionesFiltradas)
+                        {
+                            <div class="list-group-item border-bottom d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="fw-bold mb-1">@institucion.Nombre</h5>
+                                    <small class="text-muted">RNC: @(string.IsNullOrEmpty(institucion.Rnc) ? "N/A" : institucion.Rnc) | Email: @institucion.EmailAdmin</small>
                                 </div>
-                                <div class="row mt-2">
-                                    <div class="col-md-12">
-                                        <small class="text-muted">
-                                            <i class="bi bi-envelope"></i> @institucion.EmailAdmin
-                                        </small>
-                                    </div>
-                                </div>
-                                <div class="row mt-2">
-                                    <div class="col-md-4">
-                                        <small>
-                                            <i class="bi bi-people"></i> @(institucion.Usuarios?.Count ?? 0) usuarios
-                                        </small>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <small>
-                                            <i class="bi bi-file-earmark-text"></i> @(institucion.Articulos?.Count ?? 0) artículos
-                                        </small>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <small class="text-muted">
-                                            <i class="bi bi-calendar"></i> Creada: @institucion.FechaRegistro.ToString("dd/MM/yyyy")
-                                        </small>
-                                    </div>
+                                <div class="btn-group" role="group">
+                                   
+                                    <button class="btn btn-sm btn-outline-success" @onclick="() => Editar(institucion.InstitucionId)"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn
+bi bi-trash btn-outline-danger" @onclick="Eliminar"></button>
                                 </div>
                             </div>
-                            <div class="col-md-4 d-flex align-items-center justify-content-end">
-                                <div class="btn-group-vertical" role="group">
-                                    <button class="btn btn-sm btn-outline-primary" 
-                                            @onclick="@(() => VerDetalles(institucion.InstitucionId))">
-                                        <i class="bi bi-eye"></i> Ver Detalles
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-info"
-                                            @onclick="@(() => GestionarUsuarios(institucion.InstitucionId))">
-                                        <i class="bi bi-people"></i> Gestionar Usuarios
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-warning"
-                                            @onclick="@(() => Editar(institucion.InstitucionId))">
-                                        <i class="bi bi-pencil"></i> Editar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        }
                     </div>
-                }
-            }
-        </div>
-    </div>
+                </div>
+            </div>
+        }
+    }
 </div>
 
 @code {
     private List<Institucion> instituciones = new();
-    private List<Institucion> institucionesFiltradas = new();
-    private string filtro = string.Empty;
-    private string mensaje = string.Empty;
+    private string terminoBusqueda = string.Empty;
     private bool cargando = true;
-    private int totalUsuarios = 0;
-    private int totalArticulos = 0;
+    private DateTime? fechaDesde;
+    private DateTime? fechaHasta;
+    private string errorMessage;
+    private string successMessage;
+    private bool mostrarConfirmacion;
+    private int idAEliminar;
+    private string nombreAEliminar;
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -186,15 +140,6 @@
         {
             cargando = true;
             instituciones = await InstitucionService.Listar();
-            institucionesFiltradas = instituciones;
-            
-         
-            totalUsuarios = instituciones.Sum(i => i.Usuarios?.Count ?? 0);
-            totalArticulos = instituciones.Sum(i => i.Articulos?.Count ?? 0);
-        }
-        catch (Exception ex)
-        {
-            mensaje = $"Error al cargar instituciones: {ex.Message}";
         }
         finally
         {
@@ -202,39 +147,95 @@
         }
     }
 
-    private void FiltrarInstituciones()
+    private List<Institucion> InstitucionesFiltradas => instituciones
+        .Where(i => string.IsNullOrWhiteSpace(terminoBusqueda)
+                    || i.Nombre.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)
+                    || (!string.IsNullOrEmpty(i.Rnc) && i.Rnc.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase))
+                    || (!string.IsNullOrEmpty(i.EmailAdmin) && i.EmailAdmin.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)))
+        .Where(i => !fechaDesde.HasValue || i.FechaRegistro >= fechaDesde.Value)
+        .Where(i => !fechaHasta.HasValue || i.FechaRegistro <= fechaHasta.Value)
+        .ToList();
+
+    private void Buscar()
     {
-        if (string.IsNullOrWhiteSpace(filtro))
+        _ = InstitucionesFiltradas;
+    }
+
+    private void IrACrear() => Navigation.NavigateTo("/registro/institucion/");
+
+    private void Editar(int id) => Navigation.NavigateTo($"/registro/institucion/{id}");
+
+
+    private async Task Eliminar()
+    {
+        try
         {
-            institucionesFiltradas = instituciones;
+            var eliminado = await InstitucionService.Eliminar(idAEliminar);
+            if (eliminado)
+            {
+                successMessage = $"La institución '{nombreAEliminar}' fue eliminada correctamente.";
+                await CargarInstituciones();
+                Navigation.NavigateTo("/admin/instituciones");
+            }
+            else
+            {
+                errorMessage = "No se pudo eliminar la institución.";
+            }
         }
-        else
+        catch (Exception ex)
         {
-            institucionesFiltradas = instituciones
-                .Where(i => i.Nombre.Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
-                           (i.Rnc != null && i.Rnc.Contains(filtro, StringComparison.OrdinalIgnoreCase)) ||
-                           (i.EmailAdmin != null && i.EmailAdmin.Contains(filtro, StringComparison.OrdinalIgnoreCase)))
-                .ToList();
+            errorMessage = ex.Message;
         }
-    }
-
-    private void IrACrear()
-    {
-        Navigation.NavigateTo("/admin/instituciones/crear");
-    }
-
-    private void VerDetalles(int id)
-    {
-        Navigation.NavigateTo($"/admin/instituciones/detalles/{id}");
-    }
-
-    private void GestionarUsuarios(int id)
-    {
-        Navigation.NavigateTo($"/admin/instituciones/{id}/usuarios");
-    }
-
-    private void Editar(int id)
-    {
-        Navigation.NavigateTo($"/admin/instituciones/editar/{id}");
+        finally
+        {
+            mostrarConfirmacion = false;
+            idAEliminar = 0;
+            nombreAEliminar = string.Empty;
+        }
     }
 }
+
+}
+
+<style>
+    .bg-magna-dark {
+        background-color: #103713 !important;
+        color: white;
+    }
+
+    .bg-magna-green {
+        background-color: #2d5f4d !important;
+        color: white;
+    }
+
+    .bg-magna-orange {
+        background-color: #e65100 !important;
+        color: white;
+    }
+
+    .bg-magna-light-green {
+        background-color: #e8f5e9 !important;
+        color: #103713;
+    }
+
+    .btn-magna-orange {
+        background-color: #e65100;
+        color: white;
+        border-color: #e65100;
+    }
+
+        .btn-magna-orange:hover {
+            background-color: #bf360c;
+            border-color: #bf360c;
+            color: white;
+        }
+
+    .card-stat {
+        border-radius: 12px;
+        transition: transform 0.2s;
+    }
+
+        .card-stat:hover {
+            transform: translateY(-3px);
+        }
+</style>

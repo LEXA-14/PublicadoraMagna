@@ -6,8 +6,6 @@ namespace PublicadoraMagna.Services;
 
 public class CategoriaService(IDbContextFactory<ApplicationDbContext> dbFactory)
 {
-
- 
     public async Task<bool> Guardar(Categoria categoria)
     {
         if (categoria.CategoriaId == 0)
@@ -36,10 +34,16 @@ public class CategoriaService(IDbContextFactory<ApplicationDbContext> dbFactory)
         contexto.Update(categoria);
         return await contexto.SaveChangesAsync() > 0;
     }
-    public async Task<bool>Eliminar(int id)
+    public async Task<bool> Eliminar(int id)
     {
-        using var contexto=await dbFactory.CreateDbContextAsync();
-        return await contexto.Categorias.AnyAsync(c=>c.CategoriaId==id);
+        using var contexto = await dbFactory.CreateDbContextAsync();
+
+        var categoria = await contexto.Categorias.FirstOrDefaultAsync(c => c.CategoriaId == id);
+        if (categoria == null)
+            return false;
+
+        contexto.Categorias.Remove(categoria);
+        return await contexto.SaveChangesAsync() > 0;
     }
     public async Task<Categoria?> Buscar(int id)
     {

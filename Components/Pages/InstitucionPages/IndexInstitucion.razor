@@ -1,7 +1,7 @@
-﻿@page "/institucion/dashboard"
-@using System.Security.Claims
-@using Microsoft.AspNetCore.Identity
-@using PublicadoraMagna.Model
+﻿
+@page "/institucion/index-encargos"
+@attribute [Authorize(Roles = "AdminInstitucion,RedactorInstitucion")]
+@layout InstitucionLayout
 @inject EncargoArticuloService EncargoService
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -9,58 +9,144 @@
 @rendermode InteractiveServer
 
 <PageTitle>Encargos Institución</PageTitle>
-
-<div class="container">
-    <div class="card shadow-lg">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="card-title">Encargos Enviados</h5>
+<div class="bg-gradient-green text-white py-4 mb-4">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="bg-white bg-opacity-25 rounded p-3 me-3">
+                    <i class="bi bi-briefcase fs-2"></i>
+                </div>
+                <div>
+                    <h1 class="h3 fw-bold mb-0">Encargos Enviados</h1>
+                    <small class="opacity-75">Gestiona los encargos realizados a periodistas</small>
+                </div>
+            </div>
             <div class="d-flex gap-2">
-                <button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo("/institucion/encargos/crear"))">
-                    <i class="bi bi-file-earmark-plus"></i> Crear Encargo
+                <button class="btn btn-orange" @onclick="@(() => NavigationManager.NavigateTo("/institucion/encargos/crear"))">
+                    <i class="bi bi-file-earmark-plus me-1"></i> Crear Encargo
                 </button>
-                <button class="btn btn-success" @onclick="@(() => NavigationManager.NavigateTo("/articulos/crear"))">
-                    <i class="bi bi-file-earmark-text"></i> Crear Artículo
+                <button class="btn btn-light" @onclick="@(() => NavigationManager.NavigateTo("/articulos/crear"))">
+                    <i class="bi bi-file-earmark-text me-1"></i> Crear Artículo
                 </button>
             </div>
         </div>
+    </div>
+</div>
 
+<div class="container pb-5">
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-gradient-green text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 opacity-75">Total Encargos</h6>
+                            <h2 class="mb-0 fw-bold">@ListaEncargos.Count()</h2>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="bi bi-briefcase fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-gradient-orange text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 opacity-75">Pendientes</h6>
+                            <h2 class="mb-0 fw-bold">@ListaEncargos.Count(e => e.Estado == EstadoArticulo.Pendiente)</h2>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="bi bi-clock fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-muted">Enviados</h6>
+                            <h2 class="mb-0 fw-bold text-info">@ListaEncargos.Count(e => e.Estado == EstadoArticulo.Enviado)</h2>
+                        </div>
+                        <div class="bg-info bg-opacity-10 text-info rounded-circle p-3">
+                            <i class="bi bi-send fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-muted">Aprobados</h6>
+                            <h2 class="mb-0 fw-bold text-success">@ListaEncargos.Count(e => e.Estado == EstadoArticulo.AprobadoInstitucion)</h2>
+                        </div>
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle p-3">
+                            <i class="bi bi-check-circle fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-
-            <div class="row mb-3">
-                <div class="col-3">
-                    <label><strong>Desde</strong></label>
+            <div class="row align-items-end">
+                <div class="col-md-3 mb-2">
+                    <label class="form-label small fw-semibold text-muted">
+                        <i class="bi bi-calendar me-1"></i>Desde
+                    </label>
                     <InputDate class="form-control" @bind-Value="desde"></InputDate>
                 </div>
-
-                <div class="col-3">
-                    <label><strong>Hasta</strong></label>
+                <div class="col-md-3 mb-2">
+                    <label class="form-label small fw-semibold text-muted">
+                        <i class="bi bi-calendar me-1"></i>Hasta
+                    </label>
                     <InputDate class="form-control" @bind-Value="hasta"></InputDate>
                 </div>
-
-                <div class="col-3">
-                    <label><strong>Filtrar por</strong></label>
+                <div class="col-md-2 mb-2">
+                    <label class="form-label small fw-semibold text-muted">
+                        <i class="bi bi-funnel me-1"></i>Filtrar por
+                    </label>
                     <InputSelect class="form-select" @bind-Value="Filtro">
-                        <option value="" selected disabled>Selecciona una opción</option>
+                        <option value="" selected disabled>Seleccionar</option>
                         <option value="Titulo">Título</option>
                         <option value="Categoria">Categoría</option>
                         <option value="Periodista">Periodista</option>
                         <option value="Estado">Estado</option>
                     </InputSelect>
                 </div>
-
-                <div class="col-3">
-                    <label><strong>Búsqueda</strong></label>
+                <div class="col-md-4 mb-2">
+                    <label class="form-label small fw-semibold text-muted">
+                        <i class="bi bi-search me-1"></i>Búsqueda
+                    </label>
                     <div class="input-group">
-                        <input class="form-control" @bind="ValorFiltro" placeholder="Buscar" />
-                        <button type="button" class="btn btn-outline-primary bi bi-search" @onclick="Buscar"></button>
+                        <input class="form-control" @bind="ValorFiltro" placeholder="Buscar..." />
+                        <button type="button" class="btn btn-orange" @onclick="Buscar">
+                            <i class="bi bi-search"></i>
+                        </button>
                     </div>
                 </div>
             </div>
-
-            <table class="table table-hover table-striped">
-                <thead>
+        </div>
+    </div>
+    <div class="mb-3">
+        <span class="text-muted">Total registros: </span>
+        <strong style="color: #e65100;">@ListaEncargos.Count()</strong>
+    </div>
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-gradient-green text-white">
                     <tr>
-                        <th>ID</th>
+                        <th class="py-3">ID</th>
                         <th>Fecha</th>
                         <th>Título</th>
                         <th>Categoría</th>
@@ -73,22 +159,55 @@
                     @foreach (var encargo in ListaEncargos)
                     {
                         <tr>
-                            <td>@encargo.EncargoArticuloId</td>
-                            <td>@encargo.FechaCreacion.ToShortDateString()</td>
-                            <td>@encargo.TituloSugerido</td>
-                            <td>@encargo.Categoria?.Nombre</td>
-                            <td>@encargo.Periodista?.Nombres</td>
-                            <td>@encargo.Estado.ToString()</td>
-                            <td>@encargo.ComentarioRechazo</td>
+                            <td class="text-muted">@encargo.EncargoArticuloId</td>
+                            <td class="text-muted small">@encargo.FechaCreacion.ToString("dd/MM/yyyy")</td>
+                            <td class="fw-semibold">@encargo.TituloSugerido</td>
+                            <td class="text-muted">@encargo.Categoria?.Nombre</td>
+                            <td class="text-muted">@encargo.Periodista?.Nombres</td>
+                            <td>
+                                @if (encargo.Estado == EstadoArticulo.Borrador)
+                                {
+                                    <span class="badge bg-secondary">Borrador</span>
+                                }
+                                else if (encargo.Estado == EstadoArticulo.Pendiente)
+                                {
+                                    <span class="badge" style="background: #fff3e0; color: #e65100;">Pendiente</span>
+                                }
+                                else if (encargo.Estado == EstadoArticulo.AprobadoInstitucion)
+                                {
+                                    <span class="badge bg-info bg-opacity-10 text-info">Aprobado por Institución</span>
+                                }
+                                else if (encargo.Estado == EstadoArticulo.AprobadoEditor)
+                                {
+                                    <span class="badge bg-success bg-opacity-10 text-success">Aprobado por Editor</span>
+                                }
+                                else if (encargo.Estado == EstadoArticulo.Rechazado)
+                                {
+                                    <span class="badge bg-danger bg-opacity-10 text-danger">Rechazado</span>
+                                }
+                                else if (encargo.Estado == EstadoArticulo.Enviado)
+                                {
+                                    <span class="badge bg-primary bg-opacity-10 text-primary">Enviado</span>
+                                }
+                                else if (encargo.Estado == EstadoArticulo.Pagado)
+                                {
+                                    <span class="badge bg-success">Pagado</span>
+                                }
+                            </td>
+                            <td class="small text-muted" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                @if (!string.IsNullOrEmpty(encargo.ComentarioRechazo))
+                                {
+                                    <span class="text-danger">@encargo.ComentarioRechazo</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted fst-italic">Sin comentarios</span>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
             </table>
-
-        </div>
-
-        <div class="card-footer d-flex justify-content-between">
-            <label>Conteo: @ListaEncargos.Count()</label>
         </div>
     </div>
 </div>
@@ -103,7 +222,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        
+
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
@@ -133,7 +252,7 @@
     {
         var prelista = await EncargoService.GetLista(e => e.InstitucionId == institucionIdActual);
 
-       
+
         if (desde.HasValue && hasta.HasValue)
             prelista = prelista.Where(e => e.FechaCreacion.Date >= desde.Value.Date && e.FechaCreacion.Date <= hasta.Value.Date).ToList();
 
@@ -143,7 +262,7 @@
         if (hasta.HasValue && !desde.HasValue)
             prelista = prelista.Where(e => e.FechaCreacion.Date <= hasta.Value.Date).ToList();
 
-        
+
         if (!string.IsNullOrWhiteSpace(ValorFiltro))
         {
             prelista = Filtro switch
@@ -159,3 +278,23 @@
         ListaEncargos = prelista;
     }
 }
+<style>
+    .bg-gradient-green {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+    }
+
+    .bg-gradient-orange {
+        background: linear-gradient(135deg, #ff6b35 0%, #e65100 100%);
+    }
+
+    .btn-orange {
+        background-color: #e65100;
+        color: white;
+        border: none;
+    }
+
+        .btn-orange:hover {
+            background-color: #bf360c;
+            color: white;
+        }
+</style>

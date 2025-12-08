@@ -10,10 +10,6 @@ public class ServicioPromocionalService(IDbContextFactory<ApplicationDbContext> 
    
     public async Task<bool> Guardar(ServicioPromocional servicio)
     {
-        if (string.IsNullOrWhiteSpace(servicio.Nombre))
-            throw new Exception("El nombre del servicio es requerido");
-        if (servicio.Precio < 0)
-            throw new Exception("El precio del servicio no puede ser negativo");
 
         if (!await Existe(servicio.ServicioPromocionalId))
         {

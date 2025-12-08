@@ -58,3 +58,61 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* Colores y degradados base */
+.bg-gradient-green {
+    background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+}
+
+.bg-gradient-orange {
+    background: linear-gradient(135deg, #ff6b35 0%, #e65100 100%);
+}
+
+/* Botones */
+.btn-orange {
+    background-color: #e65100;
+    color: white;
+    border: none;
+}
+
+    .btn-orange:hover {
+        background-color: #bf360c;
+        color: white;
+    }
+
+/* Estilos Específicos del Dashboard (según imagen) */
+.stat-card {
+    border: none;
+    border-radius: 15px;
+    transition: transform 0.2s;
+}
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+
+.stat-icon-box {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.bg-light-green {
+    background-color: #e8f5e9;
+}
+/* Fondo grisaceo/verdoso */
+.bg-light-orange {
+    background-color: #fff3e0;
+}
+/* Fondo rojizo claro */
+
+/* Tabla */
+.table-header-custom {
+    background-color: #1a4231; /* Verde oscuro de la imagen */
+    color: white;
+}

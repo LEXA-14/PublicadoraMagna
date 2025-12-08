@@ -1,0 +1,468 @@
+﻿@page "/admin/dashboard"
+@attribute [Authorize(Roles = "Admin")]
+@layout AdminLayout
+@inject ArticuloService ArticuloService
+@inject EncargoArticuloService EncargoService
+@inject PeriodistaService PeriodistaService
+@inject InstitucionService InstitucionService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Dashboard - Administrador</PageTitle>
+
+<style>
+    .bg-gradient-green {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+    }
+
+    .stat-card {
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+        }
+
+    .quick-action-card {
+        border: 2px dashed #dee2e6;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+        .quick-action-card:hover {
+            border-color: #2d5f4d;
+            background: #f0f7f4;
+        }
+</style>
+
+<!-- Page Header -->
+<div class="bg-gradient-green text-white py-4 mb-4">
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="bg-white bg-opacity-25 rounded p-3 me-3">
+                    <i class="bi bi-speedometer2 fs-2"></i>
+                </div>
+                <div>
+                    <h1 class="h3 fw-bold mb-0">Panel de Administración</h1>
+                    <small class="opacity-75">Vista general del sistema</small>
+                </div>
+            </div>
+            <div>
+                <span class="badge bg-white text-dark px-3 py-2">
+                    <i class="bi bi-calendar me-1"></i>
+                    @DateTime.Now.ToString("dd 'de' MMMM, yyyy")
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid pb-5">
+    <!-- Stats Cards Principales -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-lg-6 mb-3">
+            <div class="card border-0 shadow-sm stat-card bg-gradient-green text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 opacity-75">Total Artículos</h6>
+                            <h2 class="mb-0 fw-bold">@totalArticulos</h2>
+                            <small class="opacity-75">
+                                <i class="bi bi-arrow-up me-1"></i>+@articulosEsteMes este mes
+                            </small>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="bi bi-file-text fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-lg-6 mb-3">
+            <div class="card border-0 shadow-sm stat-card" style="background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 opacity-75">Periodistas</h6>
+                            <h2 class="mb-0 fw-bold">@totalPeriodistas</h2>
+                            <small class="opacity-75">
+                                <i class="bi bi-check-circle me-1"></i>@periodistasActivos activos
+                            </small>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="bi bi-person-badge fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-lg-6 mb-3">
+            <div class="card border-0 shadow-sm stat-card" style="background: linear-gradient(135deg, #ff6b35 0%, #e65100 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 opacity-75">Instituciones</h6>
+                            <h2 class="mb-0 fw-bold">@totalInstituciones</h2>
+                            <small class="opacity-75">
+                                <i class="bi bi-building me-1"></i>Registradas
+                            </small>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="bi bi-building fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-lg-6 mb-3">
+            <div class="card border-0 shadow-sm stat-card" style="background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 opacity-75">Encargos</h6>
+                            <h2 class="mb-0 fw-bold">@totalEncargos</h2>
+                            <small class="opacity-75">
+                                <i class="bi bi-clock me-1"></i>@encargosActivos activos
+                            </small>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="bi bi-briefcase fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Secundarios -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-muted">Pendientes Revisión</h6>
+                            <h3 class="mb-0 fw-bold text-warning">@articulosPendientes</h3>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-3">
+                            <i class="bi bi-hourglass-split fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-muted">Publicados</h6>
+                            <h3 class="mb-0 fw-bold text-success">@articulosPublicados</h3>
+                        </div>
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle p-3">
+                            <i class="bi bi-check-circle fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-muted">Ingresos del Mes</h6>
+                            <h3 class="mb-0 fw-bold text-success">@ingresosMes.ToString("N0")</h3>
+                            <small class="text-muted">RD$</small>
+                        </div>
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle p-3">
+                            <i class="bi bi-arrow-up-circle fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-muted">Egresos del Mes</h6>
+                            <h3 class="mb-0 fw-bold text-danger">@egresosMes.ToString("N0")</h3>
+                            <small class="text-muted">RD$</small>
+                        </div>
+                        <div class="bg-danger bg-opacity-10 text-danger rounded-circle p-3">
+                            <i class="bi bi-arrow-down-circle fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="row mb-4">
+        <div class="col-12 mb-3">
+            <h5 class="fw-bold">Gestión Rápida</h5>
+        </div>
+
+
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card quick-action-card h-100" @onclick="@(() => NavigationManager.NavigateTo("/admin/periodistas"))">
+                <div class="card-body text-center py-4">
+                    <div class="text-info rounded-circle p-3 d-inline-flex mb-2" style="background: #e0f7fa;">
+                        <i class="bi bi-person-badge fs-2"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0 small">Periodistas</h6>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card quick-action-card h-100" @onclick="@(() => NavigationManager.NavigateTo("/admin/instituciones"))">
+                <div class="card-body text-center py-4">
+                    <div class="rounded-circle p-3 d-inline-flex mb-2" style="background: #fff3e0; color: #e65100;">
+                        <i class="bi bi-building fs-2"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0 small">Instituciones</h6>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card quick-action-card h-100" @onclick="@(() => NavigationManager.NavigateTo("/articulos"))">
+                <div class="card-body text-center py-4">
+                    <div class="text-success rounded-circle p-3 d-inline-flex mb-2" style="background: #e8f5e9;">
+                        <i class="bi bi-file-text fs-2"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0 small">Artículos</h6>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card quick-action-card h-100" @onclick="@(() => NavigationManager.NavigateTo("/categorias"))">
+                <div class="card-body text-center py-4">
+                    <div class="text-warning rounded-circle p-3 d-inline-flex mb-2" style="background: #fff8e1;">
+                        <i class="bi bi-tags fs-2"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0 small">Categorías</h6>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card quick-action-card h-100" @onclick="@(() => NavigationManager.NavigateTo("/admin/servicios-promocionales"))">
+                <div class="card-body text-center py-4">
+                    <div class="text-danger rounded-circle p-3 d-inline-flex mb-2" style="background: #ffebee;">
+                        <i class="bi bi-megaphone fs-2"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0 small">Servicios</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actividad Reciente -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold mb-0">
+                        <i class="bi bi-clock-history me-2" style="color: #2d5f4d;"></i>
+                        Artículos Recientes
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    @if (articulosRecientes.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="small">Título</th>
+                                        <th class="small">Autor</th>
+                                        <th class="small">Estado</th>
+                                        <th class="small">Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var articulo in articulosRecientes.Take(10))
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold small">@articulo.Titulo</td>
+                                            <td class="text-muted small">
+                                                @if (articulo.PeriodistaId.HasValue)
+                                                {
+                                                    <span>@articulo.Periodista?.Nombres</span>
+                                                }
+                                                else
+                                                {
+                                                    <span>@articulo.Institucion?.Nombre</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (articulo.Estado == EstadoArticulo.Pagado)
+                                                {
+                                                    <span class="badge bg-success">Publicado</span>
+                                                }
+                                                else if (articulo.Estado == EstadoArticulo.AprobadoEditor)
+                                                {
+                                                    <span class="badge bg-success bg-opacity-10 text-success">Aprobado</span>
+                                                }
+                                                else if (articulo.Estado == EstadoArticulo.Pendiente)
+                                                {
+                                                    <span class="badge bg-warning bg-opacity-10 text-warning">Pendiente</span>
+                                                }
+                                            </td>
+                                            <td class="text-muted small">@articulo.FechaCreacion.ToString("dd/MM/yyyy")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            <small>No hay artículos recientes</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold mb-0">
+                        <i class="bi bi-graph-up me-2" style="color: #2d5f4d;"></i>
+                        Resumen del Sistema
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Total Usuarios</span>
+                            <strong>@(totalPeriodistas + totalInstituciones)</strong>
+                        </div>
+                    </div>
+                    <div class="mb-3 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Artículos Publicados</span>
+                            <strong class="text-success">@articulosPublicados</strong>
+                        </div>
+                    </div>
+                    <div class="mb-3 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Tasa de Aprobación</span>
+                            <strong class="text-primary">@tasaAprobacion%</strong>
+                        </div>
+                    </div>
+                    <div class="mb-3 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Balance del Mes</span>
+                            <strong class="@(balanceMes >= 0 ? "text-success" : "text-danger")">
+                                RD$ @balanceMes.ToString("N0")
+                            </strong>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Promedio por Artículo</span>
+                            <strong style="color: #e65100;">RD$ @promedioArticulo.ToString("N0")</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Métricas principales
+    private int totalArticulos = 0;
+    private int totalPeriodistas = 0;
+    private int totalInstituciones = 0;
+    private int totalEncargos = 0;
+
+    private int articulosEsteMes = 0;
+    private int periodistasActivos = 0;
+    private int encargosActivos = 0;
+
+    // Métricas secundarias
+    private int articulosPendientes = 0;
+    private int articulosPublicados = 0;
+    private decimal ingresosMes = 0;
+    private decimal egresosMes = 0;
+
+    // Estadísticas
+    private int tasaAprobacion = 0;
+    private decimal balanceMes = 0;
+    private decimal promedioArticulo = 0;
+
+    // Listas
+    private List<Articulo> articulosRecientes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        // Cargar artículos
+        var articulos = await ArticuloService.GetLista(a => true);
+        totalArticulos = articulos.Count;
+        articulosPendientes = articulos.Count(a => a.Estado == EstadoArticulo.Pendiente || a.Estado == EstadoArticulo.Enviado || a.Estado == EstadoArticulo.AprobadoInstitucion);
+        articulosPublicados = articulos.Count(a => a.Estado == EstadoArticulo.AprobadoEditor || a.Estado == EstadoArticulo.Pagado);
+        articulosRecientes = articulos.OrderByDescending(a => a.FechaCreacion).ToList();
+
+        // Artículos de este mes
+        var inicioMes = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+        articulosEsteMes = articulos.Count(a => a.FechaCreacion >= inicioMes);
+
+        // Cargar periodistas
+        var periodistas = await PeriodistaService.Listar();
+        totalPeriodistas = periodistas.Count;
+        periodistasActivos = periodistas.Count(p => p.EsActivo);
+
+        // Cargar instituciones
+        var instituciones = await InstitucionService.Listar();
+        totalInstituciones = instituciones.Count;
+
+        // Cargar encargos
+        var encargos = await EncargoService.GetLista(e => true);
+        totalEncargos = encargos.Count;
+        encargosActivos = encargos.Count(e => e.Estado == EstadoArticulo.Pendiente || e.Estado == EstadoArticulo.Enviado);
+
+        // Calcular financiero del mes
+        var articulosMes = articulos.Where(a => a.FechaCreacion >= inicioMes &&
+            (a.Estado == EstadoArticulo.AprobadoEditor || a.Estado == EstadoArticulo.Pagado)).ToList();
+
+        ingresosMes = articulosMes.Sum(a => a.TotalAPagar);
+        egresosMes = articulosMes.Where(a => a.PeriodistaId.HasValue).Sum(a => a.Periodista?.TarifaBase ?? 0);
+        balanceMes = ingresosMes - egresosMes;
+
+        // Estadísticas
+        if (totalArticulos > 0)
+        {
+            tasaAprobacion = (int)((decimal)articulosPublicados / totalArticulos * 100);
+        }
+
+        if (articulosPublicados > 0)
+        {
+            promedioArticulo = articulos.Where(a => a.Estado == EstadoArticulo.AprobadoEditor || a.Estado == EstadoArticulo.Pagado)
+                .Average(a => a.TotalAPagar);
+        }
+    }
+}

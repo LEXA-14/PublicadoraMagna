@@ -1,8 +1,6 @@
-@page "/articulos"
+@* @page "/articulos"
+@layout AdminLayout
 @rendermode InteractiveServer
-@using PublicadoraMagna.Model
-@using PublicadoraMagna.Services
-@using Microsoft.EntityFrameworkCore
 @inject ArticuloService articuloService
 @inject IDbContextFactory<PublicadoraMagna.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager Navigation
@@ -232,3 +230,295 @@
         tipoAlerta = tipo;
     }
 }
+ *@
+
+@page "/articulos"
+@layout AdminLayout
+@rendermode InteractiveServer
+@inject ArticuloService articuloService
+@inject IDbContextFactory<PublicadoraMagna.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager Navigation
+
+<PageTitle>Gestión de Artículos</PageTitle>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-0">Gestión de Artículos</h3>
+            <p class="text-muted mb-0">Administra todos los artículos del sistema</p>
+        </div>
+        <button class="btn btn-magna-orange shadow-sm" @onclick="IrACrear">
+            <i class="bi bi-plus-circle"></i> Nuevo Artículo
+        </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4 shadow-sm p-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold small"><i class="bi bi-calendar me-1"></i>Desde</label>
+                <InputDate class="form-control" @bind-Value="fechaDesde" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold small"><i class="bi bi-calendar me-1"></i>Hasta</label>
+                <InputDate class="form-control" @bind-Value="fechaHasta" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold small"><i class="bi bi-search me-1"></i>Búsqueda</label>
+                <div class="input-group">
+                    <input class="form-control" placeholder="Buscar por título, categoría o autor..." @bind="terminoBusqueda" />
+                    <button class="btn btn-magna-orange" @onclick="Buscar">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            @if (articulos == null)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-magna-dark" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            }
+            else if (!ArticulosFiltrados.Any())
+            {
+                <div class="alert alert-info shadow-sm">
+                    <i class="bi bi-info-circle"></i> No hay artículos que coincidan con los filtros aplicados.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Título</th>
+                                <th>Categoría</th>
+                                <th>Autor</th>
+                                <th>Estado</th>
+                                <th>Tipo</th>
+                                <th>Total</th>
+                                <th>Fecha</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var art in ArticulosFiltrados)
+                            {
+                                <tr>
+                                    <td><strong>@art.Titulo</strong></td>
+                                    <td>@art.Categoria?.Nombre</td>
+                                    <td>
+                                        @if (art.Periodista != null)
+                                        {
+                                            <span><i class="bi bi-person-circle"></i> @art.Periodista.Nombres</span>
+                                        }
+                                        else if (art.Institucion != null)
+                                        {
+                                            <span><i class="bi bi-building"></i> @art.Institucion.Nombre</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @switch (art.Estado)
+                                        {
+                                            case EstadoArticulo.Borrador:
+                                                <span class="badge bg-secondary">Borrador</span>
+                                                ; break;
+                                            case EstadoArticulo.Pendiente:
+
+                                                <span class="badge bg-warning text-dark">Pendiente</span>
+                                                ; break;
+                                            case EstadoArticulo.AprobadoInstitucion:
+
+                                                <span class="badge bg-success">Aprobado por Institución</span>
+                                                ; break;
+                                            case EstadoArticulo.AprobadoEditor:
+
+                                                <span class="badge bg-success">Aprobado por Editor</span>
+                                                ; break;
+                                            case EstadoArticulo.Rechazado:
+
+                                                <span class="badge bg-danger">Rechazado</span>
+                                                ; break;
+                                            case EstadoArticulo.Enviado:
+
+                                                <span class="badge bg-info">Publicado</span>
+                                                ; break;
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge @(art.EsLibre ? "bg-primary" : "bg-dark")">@(art.EsLibre ? "Libre" : "Pagado")</span>
+                                    </td>
+                                    <td><strong>@art.TotalAPagar.ToString("C")</strong></td>
+                                    <td>@art.FechaCreacion.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-success" @onclick="() => IrAEditar(art.ArticuloId)"><i class="bi bi-pencil"></i></button>
+                                            @if (art.Estado == EstadoArticulo.Pendiente)
+                                            {
+                                                <button class="btn btn-sm btn-outline-success" @onclick="async () => await CambiarEstado(art.ArticuloId, EstadoArticulo.AprobadoEditor)"><i class="bi bi-check-circle"></i></button>
+                                            }
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="async () => await Eliminar(art.ArticuloId)"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(mensaje))
+    {
+        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+            <div class="alert alert-@tipoAlerta alert-dismissible fade show" role="alert">
+                @mensaje
+                <button type="button" class="btn-close" @onclick="() => mensaje = string.Empty"></button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Articulo> articulos = new();
+    private string terminoBusqueda = string.Empty;
+    private DateTime? fechaDesde;
+    private DateTime? fechaHasta;
+    private string mensaje = string.Empty;
+    private string tipoAlerta = "info";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Listar();
+    }
+
+    private async Task Listar()
+    {
+        using var contexto = await DbFactory.CreateDbContextAsync();
+        articulos = await contexto.Articulos
+            .Include(a => a.Categoria)
+            .Include(a => a.Periodista)
+            .Include(a => a.Institucion)
+            .Include(a => a.ServiciosPromocionales)
+                .ThenInclude(s => s.ServicioPromocional)
+            .OrderByDescending(a => a.FechaCreacion)
+            .ToListAsync();
+    }
+
+    private List<Articulo> ArticulosFiltrados => articulos
+        .Where(a => string.IsNullOrWhiteSpace(terminoBusqueda)
+                    || a.Titulo.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)
+                    || (a.Categoria != null && a.Categoria.Nombre.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase))
+                    || (a.Periodista != null && a.Periodista.Nombres.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase))
+                    || (a.Institucion != null && a.Institucion.Nombre.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)))
+        .Where(a => !fechaDesde.HasValue || a.FechaCreacion >= fechaDesde.Value)
+        .Where(a => !fechaHasta.HasValue || a.FechaCreacion <= fechaHasta.Value)
+        .ToList();
+
+    private void Buscar() => _ = ArticulosFiltrados;
+
+    private void IrACrear() => Navigation.NavigateTo("/articulos/crear");
+    private void IrAEditar(int id) => Navigation.NavigateTo($"/articulos/editar/{id}");
+
+    private async Task Eliminar(int id)
+    {
+        try
+        {
+            var resultado = await articuloService.Eliminar(id);
+            if (resultado)
+            {
+                await Listar();
+                MostrarMensaje("Artículo eliminado correctamente", "success");
+            }
+            else
+            {
+                MostrarMensaje("No se pudo eliminar el artículo", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"Error: {ex.Message}", "danger");
+        }
+    }
+
+    private async Task CambiarEstado(int id, EstadoArticulo nuevoEstado)
+    {
+        try
+        {
+            var resultado = await articuloService.CambiarEstado(id, nuevoEstado);
+            if (resultado != null)
+            {
+                await Listar();
+                MostrarMensaje($"Artículo {nuevoEstado}", "success");
+            }
+            else
+            {
+                MostrarMensaje("No se pudo cambiar el estado", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"Error: {ex.Message}", "danger");
+        }
+    }
+
+    private void MostrarMensaje(string msg, string tipo)
+    {
+        mensaje = msg;
+        tipoAlerta = tipo;
+    }
+}
+
+<style>
+    .bg-magna-dark {
+        background-color: #103713 !important;
+        color: white;
+    }
+
+    .bg-magna-green {
+        background-color: #2d5f4d !important;
+        color: white;
+    }
+
+    .bg-magna-orange {
+        background-color: #e65100 !important;
+        color: white;
+    }
+
+    .bg-magna-light-green {
+        background-color: #e8f5e9 !important;
+        color: #103713;
+    }
+
+    .btn-magna-orange {
+        background-color: #e65100;
+        color: white;
+        border-color: #e65100;
+    }
+
+        .btn-magna-orange:hover {
+            background-color: #bf360c;
+            border-color: #bf360c;
+            color: white;
+        }
+
+    .card-stat {
+        border-radius: 12px;
+        transition: transform 0.2s;
+    }
+
+        .card-stat:hover {
+            transform: translateY(-3px);
+        }
+</style>

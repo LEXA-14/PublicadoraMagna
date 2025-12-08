@@ -1,19 +1,19 @@
 @page "/admin/periodistas"
-@using Microsoft.EntityFrameworkCore
-
-@using Microsoft.AspNetCore.Identity
+@layout AdminLayout
+@attribute [Authorize(Roles = "Admin")]
 @inject PeriodistaService PeriodistaService
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
+@using Microsoft.EntityFrameworkCore
 
 <PageTitle>Gestión de Periodistas</PageTitle>
 
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Gestión de Periodistas</h2>
-        <button class="btn btn-primary" @onclick="IrACrear">
+        <h2 class="fw-bold text-magna-dark"><i class="bi bi-people-fill me-2"></i>Gestión de Periodistas</h2>
+        <button class="btn btn-magna-orange shadow-sm" @onclick="IrACrear">
             <i class="bi bi-plus-circle"></i> Nuevo Periodista
         </button>
     </div>
@@ -21,83 +21,102 @@
     @if (cargando)
     {
         <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
+            <div class="spinner-border text-magna-dark" role="status">
                 <span class="visually-hidden">Cargando...</span>
             </div>
         </div>
     }
     else
     {
-       
         <div class="row mb-4">
             <div class="col-md-3">
-                <div class="card text-white bg-primary">
+                <div class="card card-stat bg-magna-dark text-white shadow">
                     <div class="card-body">
-                        <h5 class="card-title">Total Periodistas</h5>
-                        <h2>@periodistas.Count</h2>
+                        <h5 class="card-title"><i class="bi bi-people me-1"></i> Total Periodistas</h5>
+                        <h2>@PeriodistasFiltrados.Count</h2>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-white bg-success">
+                <div class="card card-stat bg-magna-green text-white shadow">
                     <div class="card-body">
-                        <h5 class="card-title">Activos</h5>
+                        <h5 class="card-title"><i class="bi bi-person-check me-1"></i> Activos</h5>
                         <h2>@periodistas.Count(p => p.EsActivo)</h2>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-white bg-warning">
+                <div class="card card-stat bg-magna-orange text-white shadow">
                     <div class="card-body">
-                        <h5 class="card-title">Inactivos</h5>
+                        <h5 class="card-title"><i class="bi bi-person-x me-1"></i> Inactivos</h5>
                         <h2>@periodistas.Count(p => !p.EsActivo)</h2>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-white bg-info">
+                <div class="card card-stat bg-magna-light-green shadow">
                     <div class="card-body">
-                        <h5 class="card-title">Artículos Totales</h5>
-                        <h2>@periodistas.Sum(p => p.Articulos?.Count ?? 0)</h2>
+                        <h5 class="card-title"><i class="bi bi-journal-text me-1"></i> Artículos Totales</h5>
+                        <h2 class="text-magna-dark">@periodistas.Sum(p => p.Articulos?.Count ?? 0)</h2>
                     </div>
                 </div>
             </div>
         </div>
 
-     
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <input type="text" class="form-control" placeholder="Buscar por nombre..." 
-                               @bind="terminoBusqueda" @bind:event="oninput" />
-                    </div>
-                    <div class="col-md-3">
-                        <select class="form-select" @bind="filtroEstado">
-                            <option value="">Todos</option>
-                            <option value="activo">Activos</option>
-                            <option value="inactivo">Inactivos</option>
-                        </select>
+        <div class="card mb-4 shadow-sm p-3">
+            <div class="row g-2 align-items-end">
+                <!-- Desde -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small"><i class="bi bi-calendar me-1"></i>Desde</label>
+                    <InputDate class="form-control" @bind-Value="fechaDesde" />
+                </div>
+
+                <!-- Hasta -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small"><i class="bi bi-calendar me-1"></i>Hasta</label>
+                    <InputDate class="form-control" @bind-Value="fechaHasta" />
+                </div>
+
+                <!-- Filtrar por -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small"><i class="bi bi-funnel me-1"></i>Filtrar por</label>
+                    <InputSelect class="form-select" @bind-Value="filtroEstado">
+                        <option value="">Todos los Estados</option>
+                        <option value="activo">Activos</option>
+                        <option value="inactivo">Inactivos</option>
+                    </InputSelect>
+                </div>
+
+                <!-- Búsqueda -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small"><i class="bi bi-search me-1"></i>Búsqueda</label>
+                    <div class="input-group">
+                        <input class="form-control" placeholder="Buscar por nombre, apellido o email..." @bind="terminoBusqueda" />
+                        <button class="btn btn-magna-orange" @onclick="Buscar">
+                            <i class="bi bi-search"></i>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-  
-        @if (!PeriodistasFiltrados().Any())
+        @if (!PeriodistasFiltrados.Any())
         {
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> No hay periodistas registrados.
+            <div class="alert alert-info shadow-sm">
+                <i class="bi bi-info-circle"></i> No hay periodistas que coincidan con los filtros aplicados.
             </div>
         }
         else
         {
-            <div class="card">
-                <div class="card-body">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-magna-dark text-white">
+                    <i class="bi bi-list-ul me-2"></i> Listado (Mostrando @PeriodistasFiltrados.Count)
+                </div>
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover align-middle mb-0">
                             <thead>
-                                <tr>
+                                <tr class="bg-light">
                                     <th>Nombre</th>
                                     <th>Email</th>
                                     <th>Tarifa Base</th>
@@ -108,18 +127,18 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var periodista in PeriodistasFiltrados())
+                                @foreach (var periodista in PeriodistasFiltrados)
                                 {
                                     <tr>
-                                        <td>@periodista.Nombres</td>
+                                        <td class="fw-bold">@periodista.Nombres</td>
                                         <td>
                                             @if (emailsPeriodistas.ContainsKey(periodista.PeriodistaId))
                                             {
-                                                @emailsPeriodistas[periodista.PeriodistaId]
+                                                <span class="text-muted">@emailsPeriodistas[periodista.PeriodistaId]</span>
                                             }
                                             else
                                             {
-                                                <span class="text-muted">Sin usuario</span>
+                                                <span class="text-danger small">Sin usuario asociado</span>
                                             }
                                         </td>
                                         <td>RD$ @periodista.TarifaBase.ToString("N0")</td>
@@ -130,17 +149,17 @@
                                             }
                                             else
                                             {
-                                                <span class="badge bg-secondary">Inactivo</span>
+                                                <span class="badge bg-danger">Inactivo</span>
                                             }
                                         </td>
                                         <td>@(periodista.Articulos?.Count ?? 0)</td>
                                         <td>@periodista.FechaRegistro.ToString("dd/MM/yyyy")</td>
                                         <td>
-                                            <button class="btn btn-sm btn-primary" @onclick="() => Editar(periodista.PeriodistaId)">
-                                                <i class="bi bi-pencil"></i> Editar
+                                            <button class="btn btn-sm btn-outline-success me-1" @onclick="() => Editar(periodista.PeriodistaId)" title="Editar">
+                                                <i class="bi bi-pencil"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-warning" @onclick="() => CambiarEstado(periodista.PeriodistaId, !periodista.EsActivo)">
-                                                <i class="bi bi-toggle-on"></i> @(periodista.EsActivo ? "Desactivar" : "Activar")
+                                            <button class="btn btn-sm btn-warning" @onclick="() => CambiarEstado(periodista.PeriodistaId, !periodista.EsActivo)" title="Cambiar Estado">
+                                                <i class="bi bi-toggle-on"></i>
                                             </button>
                                         </td>
                                     </tr>
@@ -155,11 +174,13 @@
 </div>
 
 @code {
-    public List<Periodista> periodistas { get; set; } = new();
-    public Dictionary<int, string> emailsPeriodistas { get; set; } = new();
-    public string terminoBusqueda { get; set; } = string.Empty;
-    public string filtroEstado { get; set; } = string.Empty;
-    public bool cargando { get; set; } = true;
+    private List<Periodista> periodistas { get; set; } = new();
+    private Dictionary<int, string> emailsPeriodistas { get; set; } = new();
+    private string terminoBusqueda { get; set; } = string.Empty;
+    private string filtroEstado { get; set; } = string.Empty;
+    private bool cargando { get; set; } = true;
+    private DateTime? fechaDesde { get; set; }
+    private DateTime? fechaHasta { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -173,17 +194,12 @@
             cargando = true;
             periodistas = await PeriodistaService.Listar();
 
-            // Cargar emails de cada periodista
-            foreach (var periodista in periodistas)
-            {
-                var user = await UserManager.Users
-                    .FirstOrDefaultAsync(u => u.PeriodistaId == periodista.PeriodistaId);
+            var users = await UserManager.Users
+                .Where(u => u.PeriodistaId != null)
+                .Select(u => new { u.PeriodistaId, u.Email })
+                .ToListAsync();
 
-                if (user != null)
-                {
-                    emailsPeriodistas[periodista.PeriodistaId] = user.Email ?? "";
-                }
-            }
+            emailsPeriodistas = users.ToDictionary(u => u.PeriodistaId!.Value, u => u.Email ?? "Email no disponible");
         }
         finally
         {
@@ -191,46 +207,86 @@
         }
     }
 
-    private List<Periodista> PeriodistasFiltrados()
+    private List<Periodista> PeriodistasFiltrados => periodistas
+        .Where(p => string.IsNullOrWhiteSpace(terminoBusqueda)
+                    || p.Nombres.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)
+                    || (emailsPeriodistas.ContainsKey(p.PeriodistaId)
+                        && emailsPeriodistas[p.PeriodistaId].Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)))
+        .Where(p => filtroEstado == "activo" ? p.EsActivo
+                    : filtroEstado == "inactivo" ? !p.EsActivo
+                    : true)
+        .Where(p => !fechaDesde.HasValue || p.FechaRegistro >= fechaDesde.Value)
+        .Where(p => !fechaHasta.HasValue || p.FechaRegistro <= fechaHasta.Value)
+        .ToList();
+
+    private void Buscar()
     {
-        var resultado = periodistas.AsEnumerable();
-
-        // Filtrar por búsqueda
-        if (!string.IsNullOrWhiteSpace(terminoBusqueda))
-        {
-            resultado = resultado.Where(p =>
-                p.Nombres.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ||
-                (emailsPeriodistas.ContainsKey(p.PeriodistaId) &&
-                 emailsPeriodistas[p.PeriodistaId].Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase))
-            );
-        }
-
-        // Filtrar por estado
-        if (filtroEstado == "activo")
-        {
-            resultado = resultado.Where(p => p.EsActivo);
-        }
-        else if (filtroEstado == "inactivo")
-        {
-            resultado = resultado.Where(p => !p.EsActivo);
-        }
-
-        return resultado.ToList();
+        // Solo forzar reevaluación
+        _ = PeriodistasFiltrados;
     }
 
-    private void IrACrear()
-    {
-        Navigation.NavigateTo("/admin/periodistas/crear");
-    }
+    private void IrACrear() => Navigation.NavigateTo("/registro/periodista");
+    private void Editar(int id) => Navigation.NavigateTo($"/registro/periodista/{id}");
 
-    private void Editar(int id)
-    {
-        Navigation.NavigateTo($"/admin/periodistas/editar/{id}");
-    }
-
+  
     private async Task CambiarEstado(int id, bool nuevoEstado)
     {
         await PeriodistaService.CambiarEstado(id, nuevoEstado);
         await CargarPeriodistas();
     }
 }
+
+<style>
+    .bg-magna-dark {
+        background-color: #103713 !important;
+        color: white;
+    }
+
+    .bg-magna-green {
+        background-color: #2d5f4d !important;
+        color: white;
+    }
+
+    .bg-magna-orange {
+        background-color: #e65100 !important;
+        color: white;
+    }
+
+    .bg-magna-light-green {
+        background-color: #e8f5e9 !important;
+        color: #103713;
+    }
+
+    .btn-magna-orange {
+        background-color: #e65100;
+        color: white;
+        border-color: #e65100;
+    }
+
+        .btn-magna-orange:hover {
+            background-color: #bf360c;
+            border-color: #bf360c;
+            color: white;
+        }
+
+    .btn-magna-green {
+        background-color: #2d5f4d;
+        color: white;
+        border-color: #2d5f4d;
+    }
+
+        .btn-magna-green:hover {
+            background-color: #1a4231;
+            border-color: #1a4231;
+            color: white;
+        }
+
+    .card-stat {
+        border-radius: 12px;
+        transition: transform 0.2s;
+    }
+
+        .card-stat:hover {
+            transform: translateY(-3px);
+        }
+</style>

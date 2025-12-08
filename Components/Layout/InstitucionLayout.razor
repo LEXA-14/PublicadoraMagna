@@ -1,0 +1,75 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@inherits LayoutComponentBase
+@attribute [Authorize(Roles = "AdminInstitucion,RedactorInstitucion")]
+
+<div class="d-flex">
+    <aside class="bg-gradient-green text-white p-3"
+           style="width: 240px; min-height: 100vh; position: fixed;">
+
+        <h4 class="mb-4 d-flex align-items-center">
+            <i class="bi bi-building me-2 header-icon"></i>
+            Institución
+        </h4>
+
+        <nav class="nav flex-column">
+
+            <a class="nav-link text-white" href="/institucion/dashboard">
+                <i class="bi bi-speedometer2 me-2"></i>Dashboard
+            </a>
+            <a class="nav-link text-white" href="/institucion/index-encargos">
+                <i class="bi bi-bullseye me-2"></i>Index de Encargos
+            </a>
+
+            <a class="nav-link text-white" href="/institucion/encargos">
+                <i class="bi bi-journal-plus me-2"></i> Panel de Envios Encargos
+            </a>
+
+            <a class="nav-link text-white" href="/institucion/articulos">
+                <i class="bi bi-file-text me-2"></i>Artículos
+            </a>
+
+            @* <a class="nav-link text-white" href="/institucion/servicios">
+                <i class="bi bi-bullseye me-2"></i>Servicios
+            </a> *@
+
+            <a class="nav-link text-white" href="/pagos">
+                <i class="bi bi-currency-dollar me-2"></i>Pagos
+            </a>
+
+            <hr class="border-light" />
+
+            <a class="nav-link text-white" href="/Account/Logout">
+                <i class="bi bi-box-arrow-right me-2"></i>Salir
+            </a>
+        </nav>
+    </aside>
+    <div class="flex-grow-1" style="margin-left: 240px;">
+        <main class="p-4">
+            @Body
+        </main>
+
+        <footer class="bg-light text-center py-3 border-top">
+            <small>&copy; 2025 Publicadora Magna</small>
+        </footer>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-green {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+    }
+
+    .header-icon {
+        width: 40px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+    }
+
+    .nav-link:hover {
+        background-color: rgba(255,255,255,0.1);
+        border-radius: 6px;
+    }
+</style>

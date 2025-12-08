@@ -1,219 +1,192 @@
 ﻿@page "/categorias"
-@rendermode InteractiveServer
-@using Microsoft.EntityFrameworkCore
+@layout AdminLayout
+@using PublicadoraMagna.Model
+@using PublicadoraMagna.Services
 @inject CategoriaService categoriaService
-@inject IDbContextFactory<PublicadoraMagna.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
 
 <PageTitle>Gestión de Categorías</PageTitle>
 
-<div class="container-fluid">
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h3 class="mb-0">
-                <i class="bi bi-tags"></i> Gestión de Categorías
-            </h3>
+<div class="container-fluid mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-white rounded shadow-sm">
+        <div>
+            <h4 class="mb-0 fw-bold text-secondary">
+                <i class="bi bi-folder-fill text-success me-2"></i>Gestión de Categorías <span class="badge bg-dark rounded-pill">Admin</span>
+            </h4>
+            <small class="text-muted">Administra las categorías de artículos y sus precios base</small>
         </div>
-        <div class="card-body">
-      
-            <div class="row mb-4">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5>@(categoria.CategoriaId == 0 ? "Nueva Categoría" : "Editar Categoría")</h5>
-                        </div>
-                        <div class="card-body">
-                            <EditForm Model="categoria" OnValidSubmit="Guardar">
-                                <DataAnnotationsValidator />
+        <a href="/categorias/crear" class="btn btn-orange shadow-sm">
+            <i class="bi bi-plus-lg"></i> Crear Categoría
+        </a>
+    </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Nombre:</label>
-                                            <InputText @bind-Value="categoria.Nombre" class="form-control" placeholder="Ej: Deportes, Política, etc." />
-                                            <ValidationMessage For="@(() => categoria.Nombre)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Precio Base:</label>
-                                            <InputNumber @bind-Value="categoria.PrecioBase" class="form-control" placeholder="0.00" />
-                                            <ValidationMessage For="@(() => categoria.PrecioBase)" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-success">
-                                        <i class="bi bi-save"></i> Guardar
-                                    </button>
-                                    <button type="button" class="btn btn-secondary" @onclick="Nuevo">
-                                        <i class="bi bi-file-earmark-plus"></i> Nuevo
-                                    </button>
-                                </div>
-                            </EditForm>
-                        </div>
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-light-green shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted fw-bold">● Total Categorías</small>
+                        <h2 class="mb-0 fw-bold">@listaCategorias.Count</h2>
+                        <small class="text-muted">Activas en sistema</small>
+                    </div>
+                    <div class="stat-icon-box bg-gradient-green shadow">
+                        <i class="bi bi-folder"></i>
                     </div>
                 </div>
             </div>
+        </div>
 
-       
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5>Listado de Categorías</h5>
-                        </div>
-                        <div class="card-body">
-                            @if (categorias == null)
-                            {
-                                <div class="text-center">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">Cargando...</span>
-                                    </div>
-                                </div>
-                            }
-                            else if (!categorias.Any())
-                            {
-                                <div class="alert alert-info">
-                                    <i class="bi bi-info-circle"></i> No hay categorías registradas
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="table-responsive">
-                                    <table class="table table-hover table-striped">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Nombre</th>
-                                                <th>Precio Base</th>
-                                                <th>Fecha Creación</th>
-                                                <th class="text-center">Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var cat in categorias)
-                                            {
-                                                <tr>
-                                                    <td>@cat.CategoriaId</td>
-                                                    <td>@cat.Nombre</td>
-                                                    <td>@cat.PrecioBase.ToString("C")</td>
-                                                    <td>@cat.FechaCreacion.ToString("dd/MM/yyyy")</td>
-                                                    <td class="text-center">
-                                                        <button class="btn btn-sm btn-primary" @onclick="() => Seleccionar(cat)">
-                                                            <i class="bi bi-pencil"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-danger" @onclick="async () => await Eliminar(cat.CategoriaId)">
-                                                            <i class="bi bi-trash"></i>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            }
-                        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-light-orange shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-danger fw-bold">● Precio Promedio</small>
+                        <h2 class="mb-0 fw-bold text-danger">@precioPromedio.ToString("C0")</h2>
+                        <small class="text-muted">Por categoría</small>
+                    </div>
+                    <div class="stat-icon-box bg-gradient-orange shadow">
+                        <i class="bi bi-currency-dollar"></i>
                     </div>
                 </div>
             </div>
+        </div>
 
-            @if (!string.IsNullOrEmpty(mensaje))
-            {
-                <div class="alert alert-@tipoAlerta alert-dismissible fade show mt-3" role="alert">
-                    @mensaje
-                    <button type="button" class="btn-close" @onclick="() => mensaje = string.Empty"></button>
+        <div class="col-md-3">
+            <div class="card stat-card bg-light-green shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted fw-bold">● Precio Máximo</small>
+                        <h2 class="mb-0 fw-bold">@precioMaximo.ToString("C0")</h2>
+                        <small class="text-muted">Categoría premium</small>
+                    </div>
+                    <div class="stat-icon-box bg-gradient-green shadow">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
                 </div>
-            }
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card stat-card bg-light-orange shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-danger fw-bold">● Última Categoría</small>
+                        <h5 class="mb-0 fw-bold text-danger">@(ultimaCategoria?.Nombre ?? "N/A")</h5>
+                        <small class="text-muted">@(ultimaCategoria?.FechaCreacion.ToString("dd/MM/yyyy") ?? "--")</small>
+                    </div>
+                    <div class="stat-icon-box bg-gradient-orange shadow">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body p-2">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Buscar categorías..." @bind="filtro" @bind:event="oninput" />
+                <button class="btn btn-outline-secondary" type="button" title="Limpiar filtro" @onclick="LimpiarFiltro">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+                <button class="btn btn-success" type="button">
+                    <i class="bi bi-search"></i> Buscar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-folder2-open me-2"></i>Listado de Categorías <span class="badge bg-dark ms-2">@CategoriasFiltradas.Count categorías</span></h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-header-custom">
+                        <tr>
+                            <th class="ps-4">ID</th>
+                            <th>Nombre</th>
+                            <th>Precio Base</th>
+                            <th>Fecha Creación</th>
+                            <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!CategoriasFiltradas.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-5">
+                                    <i class="bi bi-inbox fs-1 text-muted"></i>
+                                    <p class="text-muted mt-2">No se encontraron categorías</p>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var cat in CategoriasFiltradas)
+                            {
+                                <tr>
+                                    <td>@cat.CategoriaId</td>
+                                    <td> @cat.Nombre</td>
+                                    <td><span class="badge bg-orange rounded-pill text-dark bg-opacity-10">@cat.PrecioBase.ToString("C")</span></td>
+                                    <td class="text-muted">@cat.FechaCreacion.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-end pe-4">
+                                        <a href="/categorias/editar/@cat.CategoriaId" class="btn btn-sm btn-outline-success me-1" title="Editar">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmarEliminar(cat.CategoriaId)" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 
 @code {
-    private List<Categoria> categorias = new();
-    private Categoria categoria = new();
-    private string mensaje = string.Empty;
-    private string tipoAlerta = "info";
+    private List<Categoria> listaCategorias = new();
+    private string filtro = "";
+    private decimal precioPromedio => listaCategorias.Any() ? listaCategorias.Average(c => c.PrecioBase) : 0;
+    private decimal precioMaximo => listaCategorias.Any() ? listaCategorias.Max(c => c.PrecioBase) : 0;
+    private Categoria? ultimaCategoria => listaCategorias.OrderByDescending(c => c.FechaCreacion).FirstOrDefault();
+
+    
+    private List<Categoria> CategoriasFiltradas => string.IsNullOrWhiteSpace(filtro)
+        ? listaCategorias
+        : listaCategorias.Where(c => c.Nombre.Contains(filtro, StringComparison.OrdinalIgnoreCase)).ToList();
 
     protected override async Task OnInitializedAsync()
     {
-        await Listar();
+        await CargarDatos();
     }
 
-    private async Task Listar()
+    private async Task CargarDatos()
     {
-        using var contexto = await DbFactory.CreateDbContextAsync();
-        categorias = await contexto.Categorias
-            .OrderBy(c => c.Nombre)
-            .ToListAsync();
+        listaCategorias = await categoriaService.Listar();
     }
 
-    private async Task Guardar()
+    private async Task ConfirmarEliminar(int id)
     {
-        try
+        var eliminado = await categoriaService.Eliminar(id);
+        if (eliminado)
         {
-            var resultado = await categoriaService.Guardar(categoria);
-
-            if (resultado)
-            {
-                await Listar();
-                Nuevo();
-                MostrarMensaje("Categoría guardada correctamente", "success");
-            }
-            else
-            {
-                MostrarMensaje("No se pudo guardar la categoría", "danger");
-            }
-        }
-        catch (Exception ex)
-        {
-            MostrarMensaje($"Error: {ex.Message}", "danger");
+            await CargarDatos();
         }
     }
-
-    private void Nuevo()
+    private void LimpiarFiltro()
     {
-        categoria = new Categoria();
-    }
-
-    private void Seleccionar(Categoria cat)
-    {
-        categoria = new Categoria
-        {
-            CategoriaId = cat.CategoriaId,
-            Nombre = cat.Nombre,
-            PrecioBase = cat.PrecioBase,
-            FechaCreacion = cat.FechaCreacion
-        };
-    }
-
-    private async Task Eliminar(int id)
-    {
-        try
-        {
-            var resultado = await categoriaService.Eliminar(id);
-
-            if (resultado)
-            {
-                await Listar();
-                Nuevo();
-                MostrarMensaje("Categoría eliminada correctamente", "success");
-            }
-            else
-            {
-                MostrarMensaje("No se pudo eliminar la categoría", "danger");
-            }
-        }
-        catch (Exception ex)
-        {
-            MostrarMensaje($"Error: {ex.Message}", "danger");
-        }
-    }
-
-    private void MostrarMensaje(string msg, string tipo)
-    {
-        mensaje = msg;
-        tipoAlerta = tipo;
+        filtro = string.Empty;
     }
 }
+<style>
+    .table-header-custom {
+        background-color: #1a4231;
+        color: white;
+    }</style>

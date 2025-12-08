@@ -1,0 +1,100 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@inherits LayoutComponentBase
+@attribute [Authorize(Roles = "Editor")]
+
+
+<div class="d-flex min-vh-100">
+    <!-- Sidebar -->
+    <aside class="sidebar bg-gradient-green text-white d-flex flex-column p-3">
+        <h4 class="mb-4 d-flex align-items-center">
+            <i class="bi bi-pencil-square me-2 header-icon"></i>Editor
+        </h4>
+
+        <nav class="nav flex-column flex-grow-1">
+            <a class="nav-link text-white nav-link-hover" href="/editor/articulos-index">
+                <i class="bi bi-speedometer2 me-2"></i>Dashboard
+            </a>
+            
+            <a class="nav-link text-white nav-link-hover" href="/editor/articulos-pendientes">
+                <i class="bi bi-hourglass-split me-2"></i>Pendientes
+            </a>
+
+            <a class="nav-link text-white nav-link-hover" href="/editor/articulos">
+                <i class="bi bi-check2-circle me-2"></i>Panel de Aprobacion
+            </a>
+
+            <hr class="border-light my-3" />
+
+            <a class="nav-link text-white nav-link-hover" href="/Account/Logout">
+                <i class="bi bi-box-arrow-right me-2"></i>Salir
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main content -->
+    <div class="flex-grow-1 main-content">
+        <main class="p-4">
+            @Body
+        </main>
+
+        <footer class="bg-light text-center py-3 border-top mt-auto">
+            <small>&copy; 2025 Publicadora Magna</small>
+        </footer>
+    </div>
+</div>
+
+<style>
+    /* Sidebar */
+    .sidebar {
+        width: 240px;
+        min-height: 100vh;
+        position: fixed;
+        transition: all 0.3s;
+    }
+
+    .sidebar .nav-link {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 0.25rem;
+        transition: all 0.3s;
+    }
+
+    .nav-link-hover:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+        transform: translateX(5px);
+    }
+
+    /* Green gradient */
+    .bg-gradient-green {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+    }
+
+    /* Header icon */
+    .header-icon {
+        width: 40px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background-color: rgba(255, 255, 255, 0.2);
+        transition: background 0.3s;
+    }
+
+    .header-icon:hover {
+        background-color: rgba(255, 255, 255, 0.35);
+    }
+
+    /* Main content spacing */
+    .main-content {
+        margin-left: 240px;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    /* Footer */
+    footer {
+        flex-shrink: 0;
+    }
+</style>

@@ -1,0 +1,219 @@
+﻿@page "/admin/servicios-promocionales/crear"
+@page "/admin/servicios-promocionales/editar/{Id:int}"
+@layout AdminLayout
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject ServicioPromocionalService servicioService
+@inject NavigationManager Navigation
+
+<PageTitle>@(Id == 0 ? "Crear" : "Editar") Servicio Promocional</PageTitle>
+
+<div class="container-fluid mt-5">
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-lg border-0" style="max-width: 900px; margin: auto;">
+
+            <div class="card-header bg-dark-green text-white p-4">
+                <h3 class="mb-1">
+                    <i class="bi bi-volume-up-fill me-2"></i> @(Id == 0 ? "Crear Nuevo Servicio" : "Editar Servicio")
+                </h3>
+                <p class="mb-0 text-white-50">Complete la información solicitada a continuación</p>
+            </div>
+
+            <div class="card-body p-4">
+                <EditForm Model="servicio" OnValidSubmit="Guardar">
+                    <DataAnnotationsValidator />
+
+                    <div class="row">
+                        <div class="col-md-6 border-end">
+                            <div class="form-group-custom">
+                                <label class="input-group-label">Nombre del Servicio:</label>
+                                <div class="input-with-icon">
+                                    <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                                    <InputText @bind-Value="servicio.Nombre" class="form-control" placeholder="Ej: Banner Principal" />
+                                </div>
+                                <ValidationMessage For="@(() => servicio.Nombre)" class="text-danger" />
+                            </div>
+
+                            <div class="form-group-custom">
+                                <label class="input-group-label">Precio Base:</label>
+                                <div class="input-with-icon">
+                                    <span class="input-group-text"><i class="bi bi-currency-dollar"></i></span>
+                                    <InputNumber @bind-Value="servicio.Precio" class="form-control" placeholder="0.00" />
+                                </div>
+                                <ValidationMessage For="@(() => servicio.Precio)" class="text-danger" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 ps-md-4">
+                            <div class="form-group-custom">
+                                <label class="input-group-label">Descripción:</label>
+                                <InputTextArea @bind-Value="servicio.Descripcion" class="form-control" rows="4" placeholder="Descripción breve del beneficio del servicio." />
+                                <ValidationMessage For="@(() => servicio.Descripcion)" class="text-danger" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-3 border-top pt-4 mt-3">
+
+                        <button type="button" class="btn btn-outline-secondary" @onclick="NavigateToIndex">
+                            <i class="bi bi-arrow-left"></i> Cancelar
+                        </button>
+
+                        <button type="submit" class="btn btn-green-save shadow">
+                            <i class="bi bi-save"></i> Guardar Servicio
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(mensaje))
+    {
+        <div class="alert alert-@tipoAlerta alert-dismissible fade show mt-3" role="alert" style="max-width: 900px; margin: auto;">
+            @mensaje
+            <button type="button" class="btn-close" @onclick="() => mensaje = string.Empty"></button>
+        </div>
+    }
+
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; } = 0;
+
+    private ServicioPromocional servicio = new();
+    private bool isLoading = true;
+    private string mensaje = string.Empty;
+    private string tipoAlerta = "info";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        if (Id != 0)
+        {
+            var srv = await servicioService.Buscar(Id);
+            if (srv != null)
+            {
+                servicio = new ServicioPromocional
+                {
+                    ServicioPromocionalId = srv.ServicioPromocionalId,
+                    Nombre = srv.Nombre,
+                    Descripcion = srv.Descripcion,
+                    Precio = srv.Precio,
+                    FechaCreacion = srv.FechaCreacion
+                };
+            }
+            else
+            {
+                MostrarMensaje("Servicio no encontrado. Creando uno nuevo.", "warning");
+                servicio = new ServicioPromocional();
+            }
+        }
+        else
+        {
+            servicio = new ServicioPromocional();
+        }
+        isLoading = false;
+    }
+
+    private async Task Guardar()
+    {
+        try
+        {
+            var esNuevo = servicio.ServicioPromocionalId == 0;
+            var resultado = await servicioService.Guardar(servicio);
+
+            if (resultado)
+            {
+                MostrarMensaje($"Servicio {(esNuevo ? "creado" : "actualizado")} correctamente.", "success");
+
+                if (esNuevo)
+                {
+                    servicio = new ServicioPromocional();
+                }
+
+                Navigation.NavigateTo("/admin/servicios-promocionales");
+            }
+            else
+            {
+                MostrarMensaje("No se pudo guardar el servicio. Verifique los datos.", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"Error al guardar: {ex.Message}", "danger");
+        }
+    }
+
+    private void NavigateToIndex()
+    {
+        Navigation.NavigateTo("/admin/servicios-promocionales");
+    }
+
+    private void MostrarMensaje(string msg, string tipo)
+    {
+        mensaje = msg;
+        tipoAlerta = tipo;
+    }
+}
+<style>
+    .bg-dark-green {
+        background-color: #1a4231 !important;
+        color: white;
+        border-top-left-radius: calc(.375rem - 1px);
+        border-top-right-radius: calc(.375rem - 1px);
+    }
+
+    .btn-green-save {
+        background-color: #2d5f4d;
+        border-color: #2d5f4d;
+        color: white;
+    }
+
+        .btn-green-save:hover {
+            background-color: #1a4231;
+            border-color: #1a4231;
+        }
+
+
+    .input-group-label {
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .input-with-icon {
+        display: flex;
+        align-items: center;
+        background-color: #f8f9fa;
+        border: 1px solid #ced4da;
+        border-radius: .375rem;
+    }
+
+        .input-with-icon .input-group-text {
+            background-color: transparent;
+            border: none;
+            padding-right: 0.5rem;
+            color: #6c757d;
+        }
+
+        .input-with-icon .form-control {
+            border: none;
+            box-shadow: none;
+        }
+
+    .form-group-custom {
+        padding-bottom: 1rem;
+    }
+</style>

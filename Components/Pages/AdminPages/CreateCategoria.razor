@@ -1,0 +1,120 @@
+﻿@page "/categorias/crear"
+@page "/categorias/editar/{id:int}"
+@layout AdminLayout
+@inject CategoriaService categoriaService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(Id == 0 ? "Nueva Categoría" : "Editar Categoría")</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0 rounded-4">
+
+                <div class="card-header @(Id == 0 ? "bg-gradient-orange" : "bg-gradient-green") text-white p-4 rounded-top-4">
+                    <h3 class="mb-0">
+                        <i class="bi @(Id == 0 ? "bi-plus-circle" : "bi-pencil-square") me-2"></i>
+                        @(Id == 0 ? "Registrar Nueva Categoría" : "Editar Categoría Existente")
+                    </h3>
+                    <p class="mb-0 opacity-75">Complete la información solicitada a continuación</p>
+                </div>
+
+                <div class="card-body p-4">
+                    <EditForm Model="categoria" OnValidSubmit="Guardar">
+                        <DataAnnotationsValidator />
+
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Nombre de la Categoría</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-tag"></i></span>
+                                    <InputText @bind-Value="categoria.Nombre" class="form-control" placeholder="Ej: Tecnología, Hogar, Deportes" />
+                                </div>
+                                <ValidationMessage For="@(() => categoria.Nombre)" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Precio Base</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">$</span>
+                                    <InputNumber @bind-Value="categoria.PrecioBase" class="form-control" placeholder="0.00" />
+                                </div>
+                                <ValidationMessage For="@(() => categoria.PrecioBase)" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Fecha de Registro</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-calendar"></i></span>
+                                    <input type="text" class="form-control" value="@(categoria.FechaCreacion == DateTime.MinValue ? DateTime.Now.ToString("dd/MM/yyyy") : categoria.FechaCreacion.ToString("dd/MM/yyyy"))" disabled />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-5">
+                            <a href="/categorias" class="btn btn-outline-secondary px-4">
+                                <i class="bi bi-arrow-left me-1"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn @(Id == 0 ? "btn-success" : "btn-success") px-4 shadow-sm">
+                                <i class="bi bi-save me-1"></i> Guardar Datos
+                            </button>
+                        </div>
+
+                    </EditForm>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(mensaje))
+            {
+                <div class="alert alert-danger mt-3 shadow-sm text-center">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> @mensaje
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Categoria categoria = new() { FechaCreacion = DateTime.Now };
+    private string mensaje = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id > 0)
+        {
+            var encontrado = await categoriaService.Buscar(Id);
+            if (encontrado != null)
+            {
+                categoria = encontrado;
+            }
+            else
+            {
+                Navigation.NavigateTo("/categorias");
+            }
+        }
+    }
+
+    private async Task Guardar()
+    {
+        try
+        {
+            bool resultado = await categoriaService.Guardar(categoria);
+            if (resultado)
+            {
+                Navigation.NavigateTo("/categorias");
+            }
+            else
+            {
+                mensaje = "No se pudo guardar los cambios en la base de datos.";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Ocurrió un error inesperado: {ex.Message}";
+        }
+    }
+}

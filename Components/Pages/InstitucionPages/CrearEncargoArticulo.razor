@@ -1,6 +1,6 @@
 @page "/institucion/encargos/crear"
-@* @attribute [Authorize(Roles = "AdminInstitucion,RedactorInstitucion")] *@
-@using Microsoft.AspNetCore.Identity
+ @attribute [Authorize(Roles = "AdminInstitucion,RedactorInstitucion")] 
+@layout InstitucionLayout
 @inject EncargoArticuloService EncargoService
 @inject CategoriaService CategoriaService
 @inject PeriodistaService PeriodistaService

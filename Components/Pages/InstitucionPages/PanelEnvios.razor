@@ -1,102 +1,340 @@
 ﻿@page "/institucion/encargos"
+@attribute [Authorize(Roles = "AdminInstitucion,RedactorInstitucion,Admin")]
+@layout InstitucionLayout
 @inject EncargoArticuloService EncargoService
 @inject ArticuloService ArticuloService
+@inject CategoriaService CategoriaService
 @rendermode InteractiveServer
 
-<h3>Encargos Recibidos</h3>
+<PageTitle>Panel Institucional</PageTitle>
+<div class="bg-gradient-green text-white py-4 mb-4">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="bg-white bg-opacity-25 rounded p-2 me-3">
+                    <i class="bi bi-briefcase fs-3"></i>
+                </div>
+                <div>
+                    <h1 class="h3 fw-bold mb-0">Panel Institucional</h1>
+                    <small class="opacity-75">Gestiona las propuestas de artículos</small>
+                </div>
+            </div>
+            <div>
+                <span class="badge bg-white bg-opacity-25 px-3 py-2">
+                    <i class="bi bi-clock me-1"></i>@(encargosRecibidos?.Count ?? 0) propuestas nuevas
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
 
-@if (encargosRecibidos == null)
-{
-    <p>Cargando encargos...</p>
-}
-else if (!encargosRecibidos.Any())
-{
-    <div class="alert alert-info">No hay encargos enviados por periodistas.</div>
-}
-else
-{
-    <div class="row">
-        @foreach (var encargo in encargosRecibidos)
-        {
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-light">
-                        <h6>@encargo.TituloSugerido</h6>
-                    </div>
-                    <div class="card-body">
-                        <p><strong>Periodista:</strong> @encargo.Periodista?.Nombres</p>
-                        <p><strong>Categoría:</strong> @encargo.Categoria?.Nombre</p>
-                        <p>
-                            <strong>Servicios Promocionales:</strong>
-                            @if (encargo.ServiciosPromocionales?.Any() == true)
-                            {
-                                @string.Join(", ", encargo.ServiciosPromocionales.Select(s => s.ServicioPromocional?.Nombre))
-                            }
-                            else
-                            {
-                                <span>Sin servicios</span>
-                            }
-                        </p>
-                        <div class="border p-2 bg-light">
-                            <p><strong>Estado:</strong> @encargo.Estado</p>
-                            @if (encargo.Estado == EstadoArticulo.Rechazado && !string.IsNullOrWhiteSpace(encargo.ComentarioRechazo))
-                            {
-                                <p><strong>Motivo del rechazo:</strong> @encargo.ComentarioRechazo</p>
-                            }
-                            </div>
-                        <p><strong>Contenido del artículo:</strong></p>
-                       <div class="border p-2 bg-light" style="white-space: pre-wrap;">
-                        @encargo.Articulo?.Contenido
-                     </div>
-                        
-                    </div>
-                    <div class="card-footer d-flex justify-content-between">
-                        <button class="btn btn-success btn-sm" @onclick="() => AbrirModalAceptar(encargo)">Aceptar</button>
-                        <button class="btn btn-danger btn-sm" @onclick="() => AbrirModalRechazar(encargo)">Rechazar</button>
+<div class="container pb-5">
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-gradient-orange text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 opacity-75">Pendientes</h6>
+                            <h2 class="mb-0 fw-bold">@(encargosRecibidos?.Count(e => e.Estado == EstadoArticulo.Enviado) ?? 0)</h2>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="bi bi-clock fs-4"></i>
+                        </div>
                     </div>
                 </div>
             </div>
-        }
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 opacity-75">Aceptadas</h6>
+                            <h2 class="mb-0 fw-bold">0</h2>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="bi bi-check-circle fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-muted">Rechazadas</h6>
+                            <h2 class="mb-0 fw-bold">0</h2>
+                        </div>
+                        <div class="bg-danger bg-opacity-10 text-danger rounded-circle p-3">
+                            <i class="bi bi-x-circle fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-gradient-teal text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 opacity-75">Inversión Total</h6>
+                            <h2 class="mb-0 fw-bold">RD$ 0</h2>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="bi bi-graph-up fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="position-relative">
+                        <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                        <input type="text" class="form-control ps-5 rounded-pill" 
+                               placeholder="Buscar por título o periodista..." 
+                               @bind="terminoBusqueda" 
+                               @bind:event="oninput"
+                               @onkeyup="Buscar">
+                    </div>
+                </div>
+               <div class="col-md-6">
+    <select class="form-select rounded-pill" @bind="categoriaFiltro" @bind:after="Buscar">
+        <option>Todas las categorías</option>
+        @foreach (var categoria in categorias)
+        {
+            <option>@categoria.Nombre</option>
+        }
+    </select>
+</div>
+            </div>
+        </div>
+    </div>
 
+    @if (encargosRecibidos == null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-3 text-muted">Cargando encargos...</p>
+        </div>
+    }
+    else if (!encargosRecibidos.Any())
+    {
+        <div class="alert alert-info border-0 shadow-sm">
+            <i class="bi bi-info-circle me-2"></i>No hay encargos enviados por periodistas.
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <ul class="nav nav-tabs px-3 pt-3 border-0">
+                    <li class="nav-item">
+                        <a class="nav-link active fw-semibold" style="color: #e65100; border-bottom: 3px solid #e65100;" href="#">Todas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold text-muted" href="#">Pendientes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold text-muted" href="#">Aceptadas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold text-muted" href="#">Rechazadas</a>
+                    </li>
+                </ul>
+
+                <div class="p-3">
+                    <h6 class="mb-3 text-muted">Propuestas de Artículos</h6>
+
+                    @foreach (var encargo in encargosRecibidos)
+                    {
+                        <div class="card mb-3 border border-orange-hover">
+                            <div class="card-body">
+                                <div class="d-flex align-items-start mb-3">
+                                    <div class="bg-success bg-opacity-10 text-success rounded p-2 me-3">
+                                        <i class="bi bi-file-text fs-4"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h5 class="mb-2 fw-bold">@encargo.TituloSugerido</h5>
+                                        <div class="mb-2">
+                                            @if (encargo.Categoria != null)
+                                            {
+                                                <span class="badge bg-success bg-opacity-10 text-success me-2">@encargo.Categoria.Nombre</span>
+                                            }
+                                            <span class="badge" style="background: #fff3e0; color: #e65100;">Pendiente</span>
+                                        </div>
+                                        <p class="text-muted mb-2">@encargo.DescripcionEncargo</p>
+                                        <div class="d-flex gap-3 text-muted small mb-2">
+                                            @if (encargo.Periodista != null)
+                                            {
+                                                <span><i class="bi bi-person me-1"></i>@encargo.Periodista.Nombres</span>
+                                            }
+                                            <span><i class="bi bi-calendar me-1"></i>Entrega: @encargo.FechaCreacion.AddDays(14).ToString("dd MMM yyyy")</span>
+                                            <span><i class="bi bi-file-text me-1"></i>2000 palabras</span>
+                                            <span class="fw-semibold" style="color: #e65100;"><i class="bi bi-currency-dollar me-1"></i>RD$ @encargo.TotalAPagar.ToString("N0")</span>
+                                        </div>
+                                        @if (encargo.ServiciosPromocionales?.Any() == true)
+                                        {
+                                            <div class="mt-2">
+                                                <small class="text-muted">Servicios incluidos:</small>
+                                                @foreach (var servicio in encargo.ServiciosPromocionales)
+                                                {
+                                                    <span class="badge ms-1" style="background: #fff3e0; color: #e65100;">@servicio.ServicioPromocional?.Nombre</span>
+                                                }
+                                            </div>
+                                        }
+                                        @if (encargo.Estado == EstadoArticulo.Rechazado && !string.IsNullOrWhiteSpace(encargo.ComentarioRechazo))
+                                        {
+                                            <div class="alert alert-danger mt-2 mb-0 py-2">
+                                                <strong>Motivo del rechazo:</strong> @encargo.ComentarioRechazo
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2 justify-content-end">
+                                  
+                                    <button class="btn btn-sm btn-success" @onclick="() => AceptarArticulo(encargo)">
+                                        <i class="bi bi-check-circle me-1"></i>Aceptar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => AbrirModalRechazar(encargo)">
+                                        <i class="bi bi-x-circle me-1"></i>Rechazar
+                                    </button>
+                                    <button class="btn btn-sm btn-orange" @onclick="() => AbrirModalAceptar(encargo)">
+                                        <i class="bi bi-eye me-1"></i>Ver completo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
 @if (encargoSeleccionado != null && aceptarModal)
 {
-    <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5>Aceptar Encargo: @encargoSeleccionado.TituloSugerido</h5>
-                    <button class="btn-close" @onclick="CerrarModal"></button>
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0">
+                    <h4 class="fw-bold mb-0">@encargoSeleccionado.TituloSugerido</h4>
+                    <button type="button" class="btn-close" @onclick="CerrarModal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>¿Deseas aceptar este artículo y marcarlo como aprobado?</p>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
-                    <button class="btn btn-success" @onclick="AceptarArticulo">Aceptar</button>
+                   
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="text-muted small mb-1">Periodista</div>
+                            <div>
+                                <i class="bi bi-person me-1"></i>@encargoSeleccionado.Periodista?.Nombres
+                            </div>
+                            <small class="text-muted">@encargoSeleccionado.Periodista?.Nombres?.ToLower().Replace(" ", ".")@@periodista.com</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="text-muted small mb-1">Categoría</div>
+                            <div>
+                                @if (encargoSeleccionado.Categoria != null)
+                                {
+                                    <span class="badge bg-success text-white px-3 py-2 rounded-pill">@encargoSeleccionado.Categoria.Nombre</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="text-muted small mb-1">Fecha de envío</div>
+                            <div>
+                                <i class="bi bi-calendar me-1"></i>@encargoSeleccionado.FechaCreacion.ToString("dd 'de' MMMM 'de' yyyy")
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="text-muted small mb-1">Fecha límite de entrega</div>
+                            <div style="color: #e65100;">
+                                <i class="bi bi-clock me-1"></i>@encargoSeleccionado.FechaCreacion.AddDays(14).ToString("dd 'de' MMMM 'de' yyyy")
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3">Descripción del Artículo</h6>
+                        <div class="bg-light p-3 rounded">
+                            <p class="mb-2">@encargoSeleccionado.DescripcionEncargo</p>
+                            <div><i class="bi bi-file-text me-1"></i><small>2000 palabras estimadas</small></div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3">Desglose de Costos</h6>
+                        <div class="border rounded p-3 mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Costo base del artículo</span>
+                                <strong style="color: #e65100;">RD$ @encargoSeleccionado.Categoria?.PrecioBase.ToString("N0")</strong>
+                            </div>
+                        </div>
+
+                        @if (encargoSeleccionado.ServiciosPromocionales?.Any() == true)
+                        {
+                            <div class="mb-2">
+                                <small class="text-muted">Servicios promocionales:</small>
+                                @foreach (var servicio in encargoSeleccionado.ServiciosPromocionales)
+                                {
+                                    <div class="border rounded p-3 mb-2">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <div class="fw-semibold">@servicio.ServicioPromocional?.Nombre</div>
+                                                <small class="text-muted">@servicio.ServicioPromocional?.Descripcion</small>
+                                            </div>
+                                            <strong style="color: #e65100;">RD$ @servicio.PrecioAplicado.ToString("N0")</strong>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <div class="border rounded p-3 bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold">Total a Invertir</h6>
+                                <h4 class="mb-0 fw-bold text-success">RD$ @encargoSeleccionado.TotalAPagar.ToString("N0")</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (encargoSeleccionado.Articulo != null)
+                    {
+                        <div class="mb-3">
+                            <h6 class="fw-bold mb-3">Contenido del Artículo</h6>
+                            <div class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;">
+                                @encargoSeleccionado.Articulo.Contenido
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
     </div>
 }
-
 @if (encargoSeleccionado != null && rechazarModal)
 {
-    <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5>Rechazar Encargo: @encargoSeleccionado.TituloSugerido</h5>
-                    <button class="btn-close" @onclick="CerrarModal"></button>
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0">
+                    <h5 class="fw-bold">Rechazar Encargo</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModal"></button>
                 </div>
                 <div class="modal-body">
-                    <label>Comentario de rechazo:</label>
-                    <textarea class="form-control" rows="3" @bind="comentarioRechazo"></textarea>
+                    <p class="mb-3">@encargoSeleccionado.TituloSugerido</p>
+                    <label class="form-label fw-semibold">Comentario de rechazo:</label>
+                    <textarea class="form-control" rows="3" @bind="comentarioRechazo" placeholder="Explica el motivo del rechazo..."></textarea>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
-                    <button class="btn btn-danger" @onclick="RechazarArticulo">Rechazar</button>
+                <div class="modal-footer border-0 bg-light">
+                    <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" @onclick="RechazarArticulo">Rechazar</button>
                 </div>
             </div>
         </div>
@@ -106,19 +344,48 @@ else
 @code {
     private List<EncargoArticulo> encargosRecibidos = new();
     private EncargoArticulo? encargoSeleccionado;
+    private List<Categoria> categorias = new();
     private bool aceptarModal = false;
     private bool rechazarModal = false;
     private string comentarioRechazo = string.Empty;
+    private string terminoBusqueda = string.Empty;
+    private string categoriaFiltro = "Todas las categorías";
 
     protected override async Task OnInitializedAsync()
     {
+        categorias = await CategoriaService.Listar();
         await CargarEncargos();
     }
 
     private async Task CargarEncargos()
     {
-        encargosRecibidos = await EncargoService.GetLista(e =>
+        var todosEncargos = await EncargoService.GetLista(e =>
             e.Estado == EstadoArticulo.Enviado && e.Articulo != null);
+        
+        encargosRecibidos = FiltrarEncargos(todosEncargos);
+    }
+
+    private List<EncargoArticulo> FiltrarEncargos(List<EncargoArticulo> encargos)
+    {
+        var resultado = encargos.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(terminoBusqueda))
+        {
+            resultado = resultado.Where(e =>
+                e.TituloSugerido.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ||
+                (e.Periodista?.Nombres?.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ?? false)
+            );
+        }
+        if (categoriaFiltro != "Todas las categorías")
+        {
+            resultado = resultado.Where(e => e.Categoria?.Nombre == categoriaFiltro);
+        }
+
+        return resultado.ToList();
+    }
+
+    private async Task Buscar()
+    {
+        await CargarEncargos();
     }
 
     private void AbrirModalAceptar(EncargoArticulo encargo)
@@ -144,10 +411,9 @@ else
         comentarioRechazo = string.Empty;
     }
 
-    private async Task AceptarArticulo()
+    private async Task AceptarArticulo(EncargoArticulo encargo)
     {
-        if (encargoSeleccionado == null) return;
-
+        encargoSeleccionado = encargo;
         encargoSeleccionado.Estado = EstadoArticulo.AprobadoInstitucion;
         await EncargoService.Modificar(encargoSeleccionado);
 
@@ -167,3 +433,32 @@ else
         CerrarModal();
     }
 }
+
+<style>
+    .bg-gradient-green {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+    }
+
+    .bg-gradient-orange {
+        background: linear-gradient(135deg, #ff6b35 0%, #e65100 100%);
+    }
+
+    .bg-gradient-teal {
+        background: linear-gradient(135deg, #00897b 0%, #00695c 100%);
+    }
+
+    .border-orange-hover:hover {
+        border-color: #e65100 !important;
+    }
+
+    .btn-orange {
+        background-color: #e65100;
+        color: white;
+        border: none;
+    }
+
+        .btn-orange:hover {
+            background-color: #bf360c;
+            color: white;
+        }
+</style>
