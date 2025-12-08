@@ -87,6 +87,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         });
 
 
+
         modelBuilder.Entity<Articulo>(entity =>
         {
             entity.Property(a => a.Titulo)
@@ -100,7 +101,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasOne(a => a.Categoria)
                 .WithMany()
                 .HasForeignKey(a => a.CategoriaId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
 
             entity.HasOne(a => a.Institucion)

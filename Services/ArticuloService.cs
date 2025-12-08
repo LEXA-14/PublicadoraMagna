@@ -86,11 +86,48 @@ public class ArticuloService(IDbContextFactory<ApplicationDbContext> dbFactory, 
     public async Task<bool> Eliminar(int id)
     {
         await using var contexto = await dbFactory.CreateDbContextAsync();
-        var entidad = await contexto.Articulos.FindAsync(id);
-        if (entidad == null) return false;
+        var articulo = await contexto.Articulos
+            .Include(a => a.ServiciosPromocionales)
+            .FirstOrDefaultAsync(a => a.ArticuloId == id);
 
-        contexto.Articulos.Remove(entidad);
-        return await contexto.SaveChangesAsync() > 0;
+        if (articulo == null) return false;
+
+        try
+        {
+            if (articulo.ServiciosPromocionales.Any())
+            {
+                contexto.ArticuloServicioPromocional.RemoveRange(articulo.ServiciosPromocionales);
+            }
+            var detallesPagoInstitucion = await contexto.DetallesPagosInstitucion
+                .Where(d => d.ArticuloId == id)
+                .ToListAsync();
+            if (detallesPagoInstitucion.Any())
+            {
+                contexto.DetallesPagosInstitucion.RemoveRange(detallesPagoInstitucion);
+            }
+            var detallesPagoPeriodista = await contexto.DetallesPagosPeriodistas
+                .Where(d => d.ArticuloId == id)
+                .ToListAsync();
+            if (detallesPagoPeriodista.Any())
+            {
+                contexto.DetallesPagosPeriodistas.RemoveRange(detallesPagoPeriodista);
+            }
+            var encargos = await contexto.EncargoArticulos
+                .Where(e => e.ArticuloId == id)
+                .ToListAsync();
+            foreach (var encargo in encargos)
+            {
+                encargo.ArticuloId = null;
+            }
+            contexto.Articulos.Remove(articulo);
+
+            return await contexto.SaveChangesAsync() > 0;
+        }
+        catch (Exception ex)
+        {
+            
+            throw new Exception($"Error al eliminar artículo: {ex.Message}");
+        }
     }
 
     public async Task<List<Articulo>> ListarPorEstado(EstadoArticulo estado)
