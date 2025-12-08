@@ -1,7 +1,7 @@
-﻿@page "/Account/Login"
+﻿
+@page "/Account/Login"
 
 @using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using PublicadoraMagna.Data
 
@@ -13,127 +13,140 @@
 
 <PageTitle>Log in</PageTitle>
 
-<h1>Log in</h1>
-<div class="row">
-    <div class="col-lg-6">
-        <section>
-            <StatusMessage Message="@errorMessage" />
-            <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
-                <DataAnnotationsValidator />
-                <h2>Use a local account to log in.</h2>
-                <hr />
-                <ValidationSummary class="text-danger" role="alert" />
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username webauthn" aria-required="true" placeholder="name@example.com" />
-                    <label for="Input.Email" class="form-label">Email</label>
-                    <ValidationMessage For="() => Input.Email" class="text-danger" />
+<EditForm EditContext="editContext" OnValidSubmit="LoginUser" FormName="LoginForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="min-vh-100 d-flex align-items-center justify-content-center position-relative p-4" style="background-color:#103713;">
+
+        <!-- Background decorative circles -->
+        <div class="position-absolute" style="top:5%; left:5%; width:20rem; height:20rem; border-radius:50%; background-color:rgba(255,255,255,0.05);"></div>
+        <div class="position-absolute" style="top:15%; left:35%; width:12rem; height:12rem; border-radius:50%; background-color:rgba(255,255,255,0.05);"></div>
+
+        <!-- Main card -->
+        <div class="card rounded-4 shadow-lg overflow-hidden" style="max-width:1400px; min-height:700px;">
+            <div class="row g-0">
+                <!-- Left side -->
+                <div class="col-lg-7 position-relative p-5 d-flex flex-column justify-content-between" style="background-color:white; clip-path: polygon(0 0, 100% 0, 85% 50%, 100% 100%, 0 100%);">
+
+                    <!-- Logo -->
+                    <img src="/logo.png" alt="Publicadora Magna" class="mb-4 mx-auto" style="width:16rem;">
+
+                    <!-- Welcome badge -->
+                    <div class="text-center flex-grow-1 d-flex flex-column justify-content-center py-4">
+                        <span class="badge rounded-pill mb-3" style="background:linear-gradient(to right,#f9fafb,#f3f4f6); color:#111827;">
+                            <span class="me-2">
+                                <span class="badge rounded-circle me-1" style="background-color:#103713;">&nbsp;</span>
+                                <span class="badge rounded-circle me-1" style="background-color:#f0531c;">&nbsp;</span>
+                                <span class="badge rounded-circle" style="background-color:#103713;">&nbsp;</span>
+                            </span>
+                            Bienvenido
+                        </span>
+
+                        <div class="d-flex justify-content-center gap-2 mt-3">
+                            <div class="rounded-pill" style="width:10rem; height:0.3rem; background:linear-gradient(to right,#103713,#10371380);"></div>
+                            <div class="rounded-pill" style="width:5rem; height:0.3rem; background:linear-gradient(to right,#f0531c,#f0531c80);"></div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="color:#6B7280; font-size:0.9rem;">
+                        © 2025 Publicadora Magna <br />
+                        <span style="opacity:0.7;">Powered by NOC</span>
+                    </div>
                 </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <label for="Input.Password" class="form-label">Password</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
-                </div>
-                <div class="checkbox mb-3">
-                    <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
-                        Remember me
-                    </label>
-                </div>
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <hr />
-                <div class="d-flex flex-column">
-                    <span class="text-secondary mx-auto mt-2">OR</span>
-                    <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" EmailName="Input.Email" class="btn btn-link mx-auto">Log in with a passkey</PasskeySubmit>
-                </div>
-                <hr />
-                <div>
-                    <p>
-                        <a href="Account/ForgotPassword">Forgot your password?</a>
+
+                <!-- Right side - Form -->
+                <div class="col-lg-5 position-relative p-5 d-flex flex-column justify-content-center" style="background-color:#103713; color:white;">
+                    <h1 class="mb-3" style="font-size:3rem;">Login</h1>
+                    <p style="color:rgba(255,255,255,0.7); font-size:1.2rem;" class="mb-4">Ingresa tus credenciales</p>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
+
+                    <!-- Email -->
+                    <div class="mb-4">
+                        <label for="email" class="form-label">Email</label>
+                        <InputText id="email" class="form-control" @bind-Value="Input.Email" placeholder="Enter your email"
+                                   style="background-color:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:1rem; height:3rem;" />
+                        <ValidationMessage For="@(() => Input.Email)" />
+                    </div>
+
+                    <!-- Password -->
+                    <div class="mb-4 position-relative">
+                        <label for="password" class="form-label">Password</label>
+                        <InputText id="password" type="@((showPassword) ? "text" : "password")"
+                                   class="form-control" @bind-Value="Input.Password" placeholder="Enter your password"
+                                   style="background-color:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:1rem; height:3rem; padding-right:3rem;" />
+                        <button type="button" class="btn position-absolute" style="top:50%; right:0.75rem; transform:translateY(-50%); color:rgba(255,255,255,0.5); font-size:1.25rem;"
+                                @onclick="TogglePassword">
+                            <i class="bi @(showPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                        </button>
+                        <ValidationMessage For="@(() => Input.Password)" />
+                        <div class="text-end mt-1">
+                            <a href="#" style="color:rgba(255,255,255,0.6); font-size:0.85rem; text-decoration:none;">Forgot Password?</a>
+                        </div>
+                    </div>
+
+                    <!-- Remember Me -->
+                    <div class="form-check mb-4">
+                        <InputCheckbox id="rememberMe" class="form-check-input" @bind-Value="Input.RememberMe" />
+                        <label class="form-check-label" for="rememberMe" style="color:white;">Remember me?</label>
+                    </div>
+
+                    <!-- Submit -->
+                    <button type="submit" class="btn w-100 mb-3" style="background-color:#f0531c; color:white; border-radius:1rem; height:3rem; font-size:1.2rem;">Login</button>
+
+                    <p class="text-center" style="color:rgba(255,255,255,0.6); font-size:0.9rem;">
+                        Don&apos;t have an account? <a href="#" style="color:white; text-decoration:underline;">Register Now</a>
                     </p>
-                    <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
-                    </p>
-                    <p>
-                        <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
-                    </p>
+
+                    <div class="mt-4 text-center">
+                        <a href="#" style="color:rgba(255,255,255,0.5); font-size:0.8rem; text-decoration:none;">Terms and Services</a>
+                    </div>
+
+                    <div class="mt-2 text-center" style="color:rgba(255,255,255,0.5); font-size:0.8rem;">
+                        Have a problem? Contact us at <br />
+                        <a href="mailto:NOC@maranathaedu.edu" style="color:rgba(255,255,255,0.6); text-decoration:none;">NOC@maranathaedu.edu</a>
+                    </div>
                 </div>
-            </EditForm>
-        </section>
+            </div>
+        </div>
     </div>
-    <div class="col-lg-4 col-lg-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
-    </div>
-</div>
+</EditForm>
 
 @code {
     private string? errorMessage;
+    private bool showPassword = false;
     private EditContext editContext = default!;
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = default!;
+    private InputModel Input { get; set; } = new();
 
-    [SupplyParameterFromQuery]
-    private string? ReturnUrl { get; set; }
+    private void TogglePassword() => showPassword = !showPassword;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        Input ??= new();
-
         editContext = new EditContext(Input);
-
-        if (HttpMethods.IsGet(HttpContext.Request.Method))
-        {
-            // Clear the existing external cookie to ensure a clean login process
-            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
-        }
     }
 
-    public async Task LoginUser()
+    private async Task LoginUser()
     {
-        if (!string.IsNullOrEmpty(Input.Passkey?.Error))
+        if (!editContext.Validate())
         {
-            errorMessage = $"Error: {Input.Passkey.Error}";
             return;
         }
 
-        SignInResult result;
-        if (!string.IsNullOrEmpty(Input.Passkey?.CredentialJson))
-        {
-            // When performing passkey sign-in, don't perform form validation.
-            result = await SignInManager.PasskeySignInAsync(Input.Passkey.CredentialJson);
-        }
-        else
-        {
-            // If doing a password sign-in, validate the form.
-            if (!editContext.Validate())
-            {
-                return;
-            }
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, false);
 
-            // This doesn't count login failures towards account lockout
-            // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-            result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
-        }
         if (result.Succeeded)
         {
-            Logger.LogInformation("User logged in.");
-
-            // Obtener el usuario logueado
             var usuario = await UserManager.FindByEmailAsync(Input.Email);
             if (usuario != null)
             {
                 var roles = await UserManager.GetRolesAsync(usuario);
-
-                // Redirigir según rol
                 if (roles.Contains("AdminInstitucion"))
                 {
                     NavigationManager.NavigateTo("/institucion/dashboard");
@@ -143,31 +156,30 @@
                 {
                     NavigationManager.NavigateTo("/periodista/dashboard");
                     return;
-                }else if (roles.Contains("Editor"))
+                }
+                else if (roles.Contains("Editor"))
                 {
-                    NavigationManager.NavigateTo("editor/articulos-index");
+                    NavigationManager.NavigateTo("/editor/articulos-index");
+                    return;
                 }
             }
 
-            
-            RedirectManager.RedirectTo(ReturnUrl ?? "/");
+            NavigationManager.NavigateTo("/");
+        }
+        else
+        {
+            errorMessage = "Login failed. Please check your credentials.";
         }
     }
 
     private sealed class InputModel
     {
-        [Required]
-        [EmailAddress]
+        [Required, EmailAddress]
         public string Email { get; set; } = "";
 
-        [Required]
-        [DataType(DataType.Password)]
+        [Required, DataType(DataType.Password)]
         public string Password { get; set; } = "";
 
-        [Display(Name = "Remember me?")]
         public bool RememberMe { get; set; }
-
-        public PasskeyInputModel? Passkey { get; set; }
     }
-
 }
