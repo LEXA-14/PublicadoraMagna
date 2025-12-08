@@ -89,7 +89,7 @@
                 <button class="btn btn-outline-secondary" type="button" title="Limpiar filtro" @onclick="LimpiarFiltro">
                     <i class="bi bi-x-lg"></i>
                 </button>
-                <button class="btn btn-primary" type="button">
+                <button class="btn btn-success" type="button">
                     <i class="bi bi-search"></i> Buscar
                 </button>
             </div>
@@ -132,7 +132,7 @@
                                     <td><span class="badge bg-orange rounded-pill text-dark bg-opacity-10">@cat.PrecioBase.ToString("C")</span></td>
                                     <td class="text-muted">@cat.FechaCreacion.ToString("dd/MM/yyyy")</td>
                                     <td class="text-end pe-4">
-                                        <a href="/categorias/editar/@cat.CategoriaId" class="btn btn-outline-primary btn-sm me-1" title="Editar">
+                                        <a href="/categorias/editar/@cat.CategoriaId" class="btn btn-sm btn-outline-success me-1" title="Editar">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
                                         <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmarEliminar(cat.CategoriaId)" title="Eliminar">
