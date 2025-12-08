@@ -1,4 +1,5 @@
 ﻿@page "/institucion/encargos-index"
+@attribute [Authorize(Roles = "AdminInstitucion,RedactorInstitucion")]
 @layout InstitucionLayout
 @inject EncargoArticuloService EncargoService
 @inject UserManager<ApplicationUser> UserManager
@@ -6,29 +7,6 @@
 @rendermode InteractiveServer
 
 <PageTitle>Encargos Recibidos</PageTitle>
-
-<style>
-    .bg-gradient-green {
-        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
-    }
-
-    .bg-gradient-orange {
-        background: linear-gradient(135deg, #ff6b35 0%, #e65100 100%);
-    }
-
-    .btn-orange {
-        background-color: #e65100;
-        color: white;
-        border: none;
-    }
-
-        .btn-orange:hover {
-            background-color: #bf360c;
-            color: white;
-        }
-</style>
-
-<!-- Page Header -->
 <div class="bg-gradient-green text-white py-4 mb-4">
     <div class="container">
         <div class="d-flex justify-content-between align-items-center">
@@ -51,7 +29,6 @@
 </div>
 
 <div class="container pb-5">
-    <!-- Stats Cards -->
     <div class="row mb-4">
         <div class="col-md-4 mb-3">
             <div class="card border-0 shadow-sm bg-gradient-green text-white">
@@ -99,8 +76,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Filters -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <div class="row align-items-end">
@@ -141,14 +116,10 @@
             </div>
         </div>
     </div>
-
-    <!-- Total -->
     <div class="mb-3">
         <span class="text-muted">Conteo: </span>
         <strong style="color: #e65100;">@EncargosFiltrados.Count()</strong>
     </div>
-
-    <!-- Table -->
     <div class="card border-0 shadow-sm">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -241,7 +212,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Obtener el id de la institución logeada
         var authState = await AuthProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         if (user.Identity?.IsAuthenticated == true)
@@ -255,7 +225,7 @@
             }
         }
 
-        // Cargar encargos de esta institución
+      
         Encargos = await EncargoService.GetLista(e => e.InstitucionId == institucionIdActual);
         EncargosFiltrados = Encargos;
     }
@@ -284,3 +254,23 @@
         EncargosFiltrados = prelista.ToList();
     }
 }
+<style>
+    .bg-gradient-green {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+    }
+
+    .bg-gradient-orange {
+        background: linear-gradient(135deg, #ff6b35 0%, #e65100 100%);
+    }
+
+    .btn-orange {
+        background-color: #e65100;
+        color: white;
+        border: none;
+    }
+
+        .btn-orange:hover {
+            background-color: #bf360c;
+            color: white;
+        }
+</style>

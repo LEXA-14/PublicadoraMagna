@@ -1,5 +1,6 @@
 @page "/pagos/procesar/{ArticuloId:int}"
 @inject ArticuloService ArticuloService
+@attribute [Authorize(Roles = "AdminInstitucion,RedactorInstitucion")]
 @layout InstitucionLayout
 @inject NavigationManager NavigationManager
 @inject PagoService pagoService
