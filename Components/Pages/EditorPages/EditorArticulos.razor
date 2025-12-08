@@ -1,5 +1,5 @@
 @page "/editor/articulos"
-@layout EditorLayour 
+@layout EditorLayout
 @attribute [Authorize(Roles = "Admin,Editor")] 
 @inject ArticuloService ArticuloService
 @inject NavigationManager NavigationManager
@@ -131,7 +131,7 @@
                                     <button class="btn btn-sm btn-success" @onclick="() => Aprobar(articulo.ArticuloId)">
                                         <i class="bi bi-check-circle me-1"></i>Aprobar
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => Rechazar(articulo.ArticuloId)">
+                                    <button class="btn btn-sm btn-danger" @onclick="() => Rechazar(articulo.ArticuloId)">
                                         <i class="bi bi-x-circle me-1"></i>Rechazar
                                     </button>
                                     <button class="btn btn-sm btn-orange" @onclick="() => VerDetalle(articulo.ArticuloId)">
