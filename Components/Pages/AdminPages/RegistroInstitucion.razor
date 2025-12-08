@@ -1,4 +1,4 @@
-@page "/registro/institucion"
+@* @page "/registro/institucion"
 @inject InstitucionService InstitucionService
 @inject NavigationManager navigationManager
 @rendermode InteractiveServer
@@ -235,6 +235,280 @@
         }
     }
 }
+<style>
+    .bg-gradient-green {
+        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
+    }
+
+    .btn-orange {
+        background-color: #e65100;
+        color: white;
+        border: none;
+    }
+
+        .btn-orange:hover {
+            background-color: #bf360c;
+            color: white;
+        }
+
+    .section-icon {
+        width: 40px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+    }
+</style> *@
+
+@page "/registro/institucion"
+@page "/registro/institucion/{id:int}"
+@inject InstitucionService InstitucionService
+@inject NavigationManager navigationManager
+@rendermode InteractiveServer
+
+<PageTitle>@(id.HasValue ? "Editar Institución" : "Registrar Institución")</PageTitle>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-lg">
+                <div class="bg-gradient-green text-white text-center py-4 rounded-top">
+                    <h3 class="fw-bold mb-2">@((id.HasValue ? "Editar" : "Registrar") + " Institución")</h3>
+                    <p class="mb-0 opacity-75">Únete a nuestra plataforma de publicación</p>
+                </div>
+
+                <div class="card-body p-4">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger border-0 d-flex align-items-center" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <div>@errorMessage</div>
+                        </div>
+                    }
+
+                    @if (registroExitoso)
+                    {
+                        <div class="alert alert-success border-0 d-flex align-items-center">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <div>¡Registro exitoso! Redirigiendo al login...</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="section-icon bg-warning bg-opacity-10 text-warning me-2">
+                                    <i class="bi bi-building fs-5"></i>
+                                </div>
+                                <h6 class="mb-0 fw-semibold">Datos de tu Institución</h6>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Nombre de la Institución <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" @bind="institucion.Nombre"
+                                       placeholder="Ej: Universidad Catolica Nordestana" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">RNC (opcional)</label>
+                                <input type="text" class="form-control" @bind="institucion.Rnc"
+                                       placeholder="Ej: 401-50002-3" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Teléfono (opcional)</label>
+                                <input type="text" class="form-control" @bind="institucion.Telefono"
+                                       placeholder="Ej: 809-580-1962" />
+                            </div>
+                        </div>
+
+                        @if (!id.HasValue)
+                        {
+                            <hr>
+                            <div class="mb-4">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="section-icon bg-success bg-opacity-10 text-success me-2">
+                                        <i class="bi bi-person-badge fs-5"></i>
+                                    </div>
+                                    <h6 class="mb-0 fw-semibold">Tu Cuenta de Administrador</h6>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Nombre Completo <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" @bind="nombreAdmin"
+                                           placeholder="Ej: Juan Carlos Pérez" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                        <input type="email" class="form-control" @bind="emailAdmin"
+                                               placeholder="juan.perez@ucne.edu.do" />
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Contraseña <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                        <input type="password" class="form-control" @bind="password" placeholder="••••••••" />
+                                    </div>
+                                    <small class="text-muted">Mínimo 6 caracteres</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Confirmar Contraseña <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                        <input type="password" class="form-control" @bind="confirmarPassword" placeholder="••••••••" />
+                                    </div>
+                                </div>
+
+                                <div class="bg-light p-3 rounded mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="aceptaTerminos" @bind="aceptaTerminos">
+                                        <label class="form-check-label small" for="aceptaTerminos">
+                                            Acepto los <a href="/terminos" class="text-decoration-none" style="color: #e65100;">términos y condiciones</a>
+                                            y la <a href="/privacidad" class="text-decoration-none" style="color: #e65100;">política de privacidad</a>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="d-grid mb-3">
+                            <button type="button" class="btn btn-orange btn-lg py-3" @onclick="Guardar" disabled="@registrando">
+                                @if (registrando)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    <span>@((id.HasValue ? "Guardando cambios..." : "Registrando..."))</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    <span>@((id.HasValue ? "Guardar cambios" : "Registrar mi Institución"))</span>
+                                }
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int? id { get; set; }
+
+    private Institucion institucion = new();
+    private string nombreAdmin = string.Empty;
+    private string emailAdmin = string.Empty;
+    private string password = string.Empty;
+    private string confirmarPassword = string.Empty;
+    private bool aceptaTerminos;
+    private string errorMessage = string.Empty;
+    private bool registrando;
+    private bool registroExitoso;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (id.HasValue)
+        {
+            // Cargar institución existente para editar
+            var existente = await InstitucionService.Buscar(id.Value);
+            if (existente != null)
+            {
+                institucion = existente;
+            }
+        }
+    }
+
+    private async Task Guardar()
+    {
+        errorMessage = string.Empty;
+        registrando = true;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(institucion.Nombre))
+            {
+                errorMessage = "El nombre de la institución es requerido";
+                return;
+            }
+
+            if (!id.HasValue) // solo crear
+            {
+                if (string.IsNullOrWhiteSpace(nombreAdmin))
+                {
+                    errorMessage = "Tu nombre completo es requerido";
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(emailAdmin))
+                {
+                    errorMessage = "El email es requerido";
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
+                {
+                    errorMessage = "La contraseña debe tener al menos 6 caracteres";
+                    return;
+                }
+
+                if (password != confirmarPassword)
+                {
+                    errorMessage = "Las contraseñas no coinciden";
+                    return;
+                }
+
+                if (!aceptaTerminos)
+                {
+                    errorMessage = "Debes aceptar los términos y condiciones";
+                    return;
+                }
+
+                var creado = await InstitucionService.CrearConAdministrador(
+                    institucion,
+                    nombreAdmin,
+                    emailAdmin,
+                    password
+                );
+
+                if (!creado)
+                {
+                    errorMessage = "No se pudo completar el registro. El email podría estar ya registrado.";
+                    return;
+                }
+            }
+            else
+            {
+                // Editar existente
+                var modificado = await InstitucionService.Guardar(institucion);
+                if (!modificado)
+                {
+                    errorMessage = "No se pudo guardar los cambios.";
+                    return;
+                }
+            }
+
+            registroExitoso = true;
+            await Task.Delay(1500);
+            navigationManager.NavigateTo("/admin/instituciones", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            registrando = false;
+        }
+    }
+}
+
 <style>
     .bg-gradient-green {
         background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);

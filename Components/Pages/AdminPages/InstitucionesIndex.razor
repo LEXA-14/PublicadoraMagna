@@ -102,9 +102,10 @@
                                     <small class="text-muted">RNC: @(string.IsNullOrEmpty(institucion.Rnc) ? "N/A" : institucion.Rnc) | Email: @institucion.EmailAdmin</small>
                                 </div>
                                 <div class="btn-group" role="group">
-                                    <button class="btn btn-sm btn-outline-success" @onclick="() => VerDetalles(institucion.InstitucionId)"><i class="bi bi-eye"></i></button>
-                                    <button class="btn btn-sm btn-outline-info" @onclick="() => GestionarUsuarios(institucion.InstitucionId)"><i class="bi bi-people"></i></button>
+                                   
                                     <button class="btn btn-sm btn-outline-success" @onclick="() => Editar(institucion.InstitucionId)"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn
+bi bi-trash btn-outline-danger" @onclick="Eliminar"></button>
                                 </div>
                             </div>
                         }
@@ -121,6 +122,12 @@
     private bool cargando = true;
     private DateTime? fechaDesde;
     private DateTime? fechaHasta;
+    private string errorMessage;
+    private string successMessage;
+    private bool mostrarConfirmacion;
+    private int idAEliminar;
+    private string nombreAEliminar;
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -154,10 +161,40 @@
         _ = InstitucionesFiltradas;
     }
 
-    private void IrACrear() => Navigation.NavigateTo("/admin/instituciones/crear");
-    private void VerDetalles(int id) => Navigation.NavigateTo($"/admin/instituciones/detalles/{id}");
-    private void GestionarUsuarios(int id) => Navigation.NavigateTo($"/admin/instituciones/{id}/usuarios");
-    private void Editar(int id) => Navigation.NavigateTo($"/admin/instituciones/editar/{id}");
+    private void IrACrear() => Navigation.NavigateTo("/registro/institucion/");
+
+    private void Editar(int id) => Navigation.NavigateTo($"/registro/institucion/{id}");
+
+
+    private async Task Eliminar()
+    {
+        try
+        {
+            var eliminado = await InstitucionService.Eliminar(idAEliminar);
+            if (eliminado)
+            {
+                successMessage = $"La institución '{nombreAEliminar}' fue eliminada correctamente.";
+                await CargarInstituciones();
+                Navigation.NavigateTo("/admin/instituciones");
+            }
+            else
+            {
+                errorMessage = "No se pudo eliminar la institución.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            mostrarConfirmacion = false;
+            idAEliminar = 0;
+            nombreAEliminar = string.Empty;
+        }
+    }
+}
+
 }
 
 <style>

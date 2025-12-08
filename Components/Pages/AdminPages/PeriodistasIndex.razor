@@ -225,8 +225,10 @@
         _ = PeriodistasFiltrados;
     }
 
-    private void IrACrear() => Navigation.NavigateTo("/admin/periodistas/crear");
-    private void Editar(int id) => Navigation.NavigateTo($"/admin/periodistas/editar/{id}");
+    private void IrACrear() => Navigation.NavigateTo("/registro/periodista");
+    private void Editar(int id) => Navigation.NavigateTo($"/registro/periodista/{id}");
+
+  
     private async Task CambiarEstado(int id, bool nuevoEstado)
     {
         await PeriodistaService.CambiarEstado(id, nuevoEstado);

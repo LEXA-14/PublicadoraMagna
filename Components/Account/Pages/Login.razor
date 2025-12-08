@@ -123,26 +123,34 @@
             // To enable password failures to trigger account lockout, set lockoutOnFailure: true
             result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
         }
-
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(ReturnUrl);
-        }
-        else if (result.RequiresTwoFactor)
-        {
-            RedirectManager.RedirectTo(
-                "Account/LoginWith2fa",
-                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
-        }
-        else if (result.IsLockedOut)
-        {
-            Logger.LogWarning("User account locked out.");
-            RedirectManager.RedirectTo("Account/Lockout");
-        }
-        else
-        {
-            errorMessage = "Error: Invalid login attempt.";
+
+            // Obtener el usuario logueado
+            var usuario = await UserManager.FindByEmailAsync(Input.Email);
+            if (usuario != null)
+            {
+                var roles = await UserManager.GetRolesAsync(usuario);
+
+                // Redirigir según rol
+                if (roles.Contains("AdminInstitucion"))
+                {
+                    NavigationManager.NavigateTo("/institucion/dashboard");
+                    return;
+                }
+                else if (roles.Contains("Periodista"))
+                {
+                    NavigationManager.NavigateTo("/periodista/dashboard");
+                    return;
+                }else if (roles.Contains("Editor"))
+                {
+                    NavigationManager.NavigateTo("editor/articulos-index");
+                }
+            }
+
+            
+            RedirectManager.RedirectTo(ReturnUrl ?? "/");
         }
     }
 
@@ -161,4 +169,5 @@
 
         public PasskeyInputModel? Passkey { get; set; }
     }
+
 }

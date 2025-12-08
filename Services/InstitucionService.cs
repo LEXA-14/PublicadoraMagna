@@ -61,24 +61,20 @@ public class InstitucionService(IDbContextFactory<ApplicationDbContext> dbFactor
     public async Task<bool> Eliminar(int id)
     {
         await using var contexto = await dbFactory.CreateDbContextAsync();
+
         var entidad = await contexto.Instituciones
             .Include(i => i.Articulos)
             .Include(i => i.Usuarios)
             .FirstOrDefaultAsync(i => i.InstitucionId == id);
 
         if (entidad == null) return false;
-
-        if (entidad.Articulos != null && entidad.Articulos.Any())
-            throw new Exception("No se puede eliminar una institución que tiene artículos asociados.");
-
-        if (entidad.Usuarios != null && entidad.Usuarios.Any())
-            throw new Exception("No se puede eliminar una institución que tiene usuarios asociados.");
-
         contexto.Instituciones.Remove(entidad);
-        return await contexto.SaveChangesAsync() > 0;
+        var result = await contexto.SaveChangesAsync();
+        return result > 0;
     }
 
-  
+
+
     public async Task<Institucion?> Buscar(int id)
     {
         await using var contexto = await dbFactory.CreateDbContextAsync();

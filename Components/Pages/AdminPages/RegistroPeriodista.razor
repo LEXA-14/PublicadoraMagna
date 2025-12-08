@@ -1,18 +1,19 @@
-@page "/registro/periodista"
+
+ @page "/registro/periodista"
+@page "/registro/periodista/{id:int}"
 @inject PeriodistaService PeriodistaService
-@inject SignInManager<ApplicationUser> SignInManager
 @inject NavigationManager navigationManager
+@inject UserManager<ApplicationUser> UserManager
 @rendermode InteractiveServer
 
-<PageTitle>Registrar Periodista</PageTitle>
-
+<PageTitle>@(esEdicion ? "Editar Periodista" : "Registrar Periodista")</PageTitle>
 
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-6 col-lg-5">
             <div class="card border-0 shadow-lg">
                 <div class="bg-gradient-green text-white text-center py-4 rounded-top">
-                    <h3 class="fw-bold mb-2">Únete como Periodista</h3>
+                    <h3 class="fw-bold mb-2">@((esEdicion ? "Editar" : "Únete como") + " Periodista")</h3>
                     <p class="mb-0 opacity-75">Publica tus artículos y genera ingresos</p>
                 </div>
 
@@ -29,7 +30,7 @@
                     {
                         <div class="alert alert-success border-0 d-flex align-items-center">
                             <i class="bi bi-check-circle me-2"></i>
-                            <div>¡Registro exitoso! Redirigiendo a tu panel...</div>
+                            <div>¡Registro exitoso! Redirigiendo...</div>
                         </div>
                     }
                     else
@@ -62,85 +63,68 @@
                             </div>
                         </div>
 
-                        <hr>
-                        <div class="mb-4">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="section-icon bg-success bg-opacity-10 text-success me-2">
-                                    <i class="bi bi-key fs-5"></i>
+                        @if (!esEdicion)
+                        {
+                            <hr>
+                            <div class="mb-4">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="section-icon bg-success bg-opacity-10 text-success me-2">
+                                        <i class="bi bi-key fs-5"></i>
+                                    </div>
+                                    <h6 class="mb-0 fw-semibold">Datos de Acceso</h6>
                                 </div>
-                                <h6 class="mb-0 fw-semibold">Datos de Acceso</h6>
-                            </div>
 
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                                    <input type="email" class="form-control" @bind="email"
-                                           placeholder="Periodista@gmail.com" />
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                        <input type="email" class="form-control" @bind="email"
+                                               placeholder="Periodista@gmail.com" />
+                                    </div>
                                 </div>
-                                <small class="text-muted d-flex align-items-start mt-1">
-                                    <i class="bi bi-info-circle me-1 mt-1" style="color: #e65100;"></i>
-                                    <span>Usarás este email para iniciar sesión</span>
-                                </small>
-                            </div>
 
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Contraseña <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                                    <input type="password" class="form-control" @bind="password" placeholder="••••••••" />
-                                    <button class="btn btn-outline-secondary" type="button">
-                                     
-                                    </button>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Contraseña <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                        <input type="password" class="form-control" @bind="password" placeholder="••••••••" />
+                                    </div>
+                                    <small class="text-muted">Mínimo 6 caracteres</small>
                                 </div>
-                                <small class="text-muted">Mínimo 6 caracteres</small>
-                            </div>
 
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Confirmar Contraseña <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                                    <input type="password" class="form-control" @bind="confirmarPassword" placeholder="••••••••" />
-                                    <button class="btn btn-outline-secondary" type="button">
-                                     
-                                    </button>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Confirmar Contraseña <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                        <input type="password" class="form-control" @bind="confirmarPassword" placeholder="••••••••" />
+                                    </div>
+                                </div>
+
+                                <div class="bg-light p-3 rounded mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="aceptaTerminos" @bind="aceptaTerminos">
+                                        <label class="form-check-label small" for="aceptaTerminos">
+                                            Acepto los <a href="/terminos" class="text-decoration-none" style="color: #e65100;">términos y condiciones</a>
+                                            y la <a href="/privacidad" class="text-decoration-none" style="color: #e65100;">política de privacidad</a>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        }
 
-                       
-                        <div class="bg-light p-3 rounded mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="aceptaTerminos" @bind="aceptaTerminos">
-                                <label class="form-check-label small" for="aceptaTerminos">
-                                    Acepto los <a href="/terminos" class="text-decoration-none" style="color: #e65100;">términos y condiciones</a>
-                                    y la <a href="/privacidad" class="text-decoration-none" style="color: #e65100;">política de privacidad</a>
-                                </label>
-                            </div>
-                        </div>
-
-                        <small class="text-danger d-block mb-3">
-                            * Campos obligatorios
-                        </small>
                         <div class="d-grid mb-3">
-                            <button type="button" class="btn btn-orange btn-lg py-3" @onclick="Registrarse" disabled="@registrando">
+                            <button type="button" class="btn btn-orange btn-lg py-3" @onclick="GuardarPeriodista" disabled="@registrando">
                                 @if (registrando)
                                 {
                                     <span class="spinner-border spinner-border-sm me-2"></span>
-                                    <span>Registrando...</span>
+                                    <span>@((esEdicion ? "Guardando..." : "Registrando..."))</span>
                                 }
                                 else
                                 {
                                     <i class="bi bi-check-circle me-2"></i>
-                                    <span>Registrarme como Periodista</span>
+                                    <span>@((esEdicion ? "Guardar Cambios" : "Registrarme como Periodista"))</span>
                                 }
                             </button>
-                        </div>
-
-                        <div class="text-center">
-                            <small class="text-muted">
-                                ¿Ya tienes cuenta? <a href="/Account/Login" class="text-decoration-none" style="color: #e65100;">Inicia sesión aquí</a>
-                            </small>
                         </div>
                     }
                 </div>
@@ -149,9 +133,11 @@
     </div>
 </div>
 
-
-
 @code {
+    [Parameter] public int? id { get; set; }
+
+    private bool esEdicion => id.HasValue;
+
     public Periodista periodista { get; set; } = new Periodista();
     public string email { get; set; } = string.Empty;
     public string password { get; set; } = string.Empty;
@@ -161,107 +147,67 @@
     public bool registrando { get; set; } = false;
     public bool registroExitoso { get; set; } = false;
 
-    private async Task Registrarse()
+    protected override async Task OnInitializedAsync()
+    {
+        if (esEdicion)
+        {
+            var existing = await PeriodistaService.Buscar(id.Value);
+            if (existing != null)
+            {
+                periodista = existing;
+            }
+            else
+            {
+                errorMessage = "Periodista no encontrado";
+            }
+        }
+    }
+
+    private async Task GuardarPeriodista()
     {
         errorMessage = string.Empty;
         registrando = true;
 
         try
         {
-       
             if (string.IsNullOrWhiteSpace(periodista.Nombres))
-            {
-                errorMessage = "Tu nombre completo es requerido";
-                registrando = false;
-                return;
-            }
-
+                throw new Exception("Tu nombre completo es requerido");
             if (periodista.TarifaBase <= 0)
-            {
-                errorMessage = "Debes establecer una tarifa base mayor a 0";
-                registrando = false;
-                return;
-            }
+                throw new Exception("Debes establecer una tarifa base mayor a 0");
 
-            if (string.IsNullOrWhiteSpace(email))
+            if (!esEdicion)
             {
-                errorMessage = "El email es requerido";
-                registrando = false;
-                return;
-            }
+                if (string.IsNullOrWhiteSpace(email))
+                    throw new Exception("El email es requerido");
+                if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
+                    throw new Exception("La contraseña debe tener al menos 6 caracteres");
+                if (password != confirmarPassword)
+                    throw new Exception("Las contraseñas no coinciden");
+                if (!aceptaTerminos)
+                    throw new Exception("Debes aceptar los términos y condiciones");
 
-            if (string.IsNullOrWhiteSpace(password))
-            {
-                errorMessage = "La contraseña es requerida";
-                registrando = false;
-                return;
-            }
+                var creado = await PeriodistaService.CrearConUsuario(periodista, email, password);
+                if (!creado)
+                    throw new Exception("No se pudo completar el registro. El email podría estar registrado.");
 
-            if (password.Length < 6)
-            {
-                errorMessage = "La contraseña debe tener al menos 6 caracteres";
-                registrando = false;
-                return;
+                registroExitoso = true;
+                navigationManager.NavigateTo("/Account/Login", forceLoad: true);
             }
-
-            if (password != confirmarPassword)
+            else
             {
-                errorMessage = "Las contraseñas no coinciden";
-                registrando = false;
-                return;
+                // Edición simple
+                await PeriodistaService.Guardar(periodista);
+                registroExitoso = true;
+                navigationManager.NavigateTo("/admin/periodistas", forceLoad: true);
             }
-
-            if (!aceptaTerminos)
-            {
-                errorMessage = "Debes aceptar los términos y condiciones";
-                registrando = false;
-                return;
-            }
-            var creado = await PeriodistaService.CrearConUsuario(
-                periodista,
-                email,
-                password
-            );
-
-            if (!creado)
-            {
-                errorMessage = "No se pudo completar el registro. El email podría estar ya registrado.";
-                registrando = false;
-                return;
-            }
-            registroExitoso = true;
-            navigationManager.NavigateTo("/Account/Login", forceLoad: true);
-         
         }
         catch (Exception ex)
         {
             errorMessage = ex.Message;
+        }
+        finally
+        {
             registrando = false;
         }
     }
 }
-<style>
-    .bg-gradient-green {
-        background: linear-gradient(135deg, #2d5f4d 0%, #103713 100%);
-    }
-
-    .btn-orange {
-        background-color: #e65100;
-        color: white;
-        border: none;
-    }
-
-        .btn-orange:hover {
-            background-color: #bf360c;
-            color: white;
-        }
-
-    .section-icon {
-        width: 40px;
-        height: 40px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 8px;
-    }
-</style>
