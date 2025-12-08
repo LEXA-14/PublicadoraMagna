@@ -343,14 +343,62 @@
         }
     }
 
-protected override async Task OnInitializedAsync()
-{
+    protected override async Task OnInitializedAsync()
+    {
+    Console.WriteLine("=== INICIO OnInitializedAsync ===");
+    
     listaCategorias = await CategoriaService.Listar();
-        listaServiciosPromocionales = await ServicioPromocionalService.Listar();
+    listaServiciosPromocionales = await ServicioPromocionalService.Listar();
+
+    // IDENTIFICAR TIPO DE USUARIO
+    if (authenticationStateTask != null)
+    {
+        var authState = await authenticationStateTask;
+        var user = authState.User;
+
+        Console.WriteLine($"Usuario autenticado: {user.Identity?.IsAuthenticated}");
+        Console.WriteLine($"Claims: {string.Join(", ", user.Claims.Select(c => $"{c.Type}={c.Value}"))}");
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            // Verificar si es institución
+            if (user.IsInRole("AdminInstitucion") || user.IsInRole("RedactorInstitucion"))
+            {
+                Console.WriteLine("Usuario identificado como INSTITUCIÓN");
+                esUsuarioInstitucion = true;
+                await CargarDatosInstitucion(user);
+            }
+            // Verificar si es periodista
+            else if (user.IsInRole("Periodista"))
+            {
+                Console.WriteLine("Usuario identificado como PERIODISTA");
+                esUsuarioPeriodista = true;
+                await CargarDatosPeriodista(user);
+            }
+            else
+            {
+                Console.WriteLine($"Usuario no tiene rol reconocido. Roles: {string.Join(", ", user.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value))}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Usuario NO autenticado");
+        }
+    }
+    else
+    {
+        Console.WriteLine("authenticationStateTask es NULL");
+    }
+
+    Console.WriteLine($"esUsuarioInstitucion: {esUsuarioInstitucion}");
+    Console.WriteLine($"esUsuarioPeriodista: {esUsuarioPeriodista}");
+    Console.WriteLine($"institucionIdActual: {institucionIdActual}");
+    Console.WriteLine($"periodistaIdActual: {periodistaIdActual}");
 
     // Si viene de un encargo, cargar los datos
     if (encargoId.HasValue && encargoId.Value > 0)
     {
+        Console.WriteLine($"Cargando encargo ID: {encargoId.Value}");
         var encargo = await EncargoArticuloService.BuscarId(encargoId.Value);
         if (encargo != null)
         {
@@ -358,7 +406,7 @@ protected override async Task OnInitializedAsync()
             articulo.CategoriaId = encargo.CategoriaId;
             articulo.InstitucionId = encargo.InstitucionId;
             articulo.PeriodistaId = encargo.PeriodistaId;
-            
+
             // Copiar servicios promocionales
             foreach (var servicio in encargo.ServiciosPromocionales)
             {
@@ -369,11 +417,44 @@ protected override async Task OnInitializedAsync()
                     FechaAplicacion = DateTime.Now
                 });
             }
+            
+            RecalcularTotales();
+            Console.WriteLine("Encargo cargado exitosamente");
+        }
+        else
+        {
+            Console.WriteLine("Encargo NO encontrado");
         }
     }
-}
-  
 
+    Console.WriteLine("=== FIN OnInitializedAsync ===");
+}
+        // listaCategorias = await CategoriaService.Listar();
+        // listaServiciosPromocionales = await ServicioPromocionalService.Listar();
+
+        // // Si viene de un encargo, cargar los datos
+        // if (encargoId.HasValue && encargoId.Value > 0)
+        // {
+        //     var encargo = await EncargoArticuloService.BuscarId(encargoId.Value);
+        //     if (encargo != null)
+        //     {
+        //         articulo.Titulo = encargo.TituloSugerido;
+        //         articulo.CategoriaId = encargo.CategoriaId;
+        //         articulo.InstitucionId = encargo.InstitucionId;
+        //         articulo.PeriodistaId = encargo.PeriodistaId;
+
+        //         // Copiar servicios promocionales
+        //         foreach (var servicio in encargo.ServiciosPromocionales)
+        //         {
+        //             articulo.ServiciosPromocionales.Add(new ArticuloServicioPromocionales
+        //         {
+        //             ServicioPromocionalId = servicio.ServicioPromocionalId,
+        //             PrecioAplicado = servicio.PrecioAplicado,
+        //             FechaAplicacion = DateTime.Now
+        //         });
+        //         }
+        //     }
+        // }
     private async Task CargarDatosInstitucion(ClaimsPrincipal user)
     {
         var institucionIdClaim = user.FindFirst("InstitucionId");
@@ -536,8 +617,9 @@ protected override async Task OnInitializedAsync()
         categoriaNombre = categoria?.Nombre ?? "Sin categoría";
 
         totalServicios = articulo.ServiciosPromocionales.Sum(s => s.PrecioAplicado);
-      
+
     }
+
     private async Task Guardar(EstadoArticulo estado)
     {
         if (string.IsNullOrWhiteSpace(articulo.Titulo))
@@ -560,48 +642,65 @@ protected override async Task OnInitializedAsync()
 
         try
         {
+            // Generar resumen
             articulo.Resumen = articulo.Contenido.Length > 200
                 ? articulo.Contenido.Substring(0, 200) + "..."
                 : articulo.Contenido;
 
+            // Asignar estado
             articulo.Estado = estado;
 
-           
-            if (esUsuarioInstitucion)
+            // Asignar fechas según el estado
+            if (articulo.ArticuloId == 0)
+            {
+                articulo.FechaCreacion = DateTime.Now;
+            }
+
+            if (estado == EstadoArticulo.Pendiente || estado == EstadoArticulo.Enviado)
+            {
+                articulo.FechaEnvio = DateTime.Now;
+            }
+
+            // Configurar según tipo de usuario
+            if (esUsuarioInstitucion && institucionIdActual > 0)
             {
                 articulo.InstitucionId = institucionIdActual;
                 articulo.PeriodistaId = null;
+                articulo.EsLibre = false;
 
-                
                 var categoria = await CategoriaService.Buscar(articulo.CategoriaId);
-
                 if (categoria == null)
                 {
                     errorMessage = "No se pudo obtener el precio de la categoría";
                     return;
                 }
 
-                articulo.TotalAPagar = categoria.PrecioBase; 
+                // Total = Precio base + servicios
+                articulo.TotalAPagar = categoria.PrecioBase + articulo.ServiciosPromocionales.Sum(s => s.PrecioAplicado);
             }
-            
-            else if (esUsuarioPeriodista)
+            else if (esUsuarioPeriodista && periodistaIdActual > 0)
             {
                 articulo.PeriodistaId = periodistaIdActual;
                 articulo.InstitucionId = null;
+                articulo.EsLibre = true;
 
-                
                 var periodista = await PeriodistaService.Buscar(periodistaIdActual);
-
                 if (periodista == null)
                 {
                     errorMessage = "No se pudo obtener la tarifa del periodista";
                     return;
                 }
 
+                // Para periodistas: solo la tarifa base
                 articulo.TotalAPagar = periodista.TarifaBase;
             }
+            else
+            {
+                errorMessage = "Error: No se pudo identificar el tipo de usuario";
+                return;
+            }
 
-            
+            // Guardar artículo
             var ok = await ArticuloService.Guardar(articulo);
 
             if (!ok)
@@ -610,14 +709,37 @@ protected override async Task OnInitializedAsync()
                 return;
             }
 
-            
-            navigationManager.NavigateTo("/articulos");
+            Console.WriteLine($"Artículo guardado exitosamente. ID: {articulo.ArticuloId}");
+
+            // Si viene de un encargo, vincular el artículo al encargo
+            if (encargoId.HasValue && encargoId.Value > 0 && articulo.ArticuloId > 0)
+            {
+                await EncargoArticuloService.EnviarArticuloAInstitucion(encargoId.Value, articulo.ArticuloId);
+                Console.WriteLine($"Encargo {encargoId.Value} vinculado al artículo {articulo.ArticuloId}");
+            }
+
+            // Redirigir según el tipo de usuario
+            if (esUsuarioPeriodista)
+            {
+                navigationManager.NavigateTo("/periodista/dashboard", forceLoad: true);
+            }
+            else if (esUsuarioInstitucion)
+            {
+                navigationManager.NavigateTo("/institucion/dashboard", forceLoad: true);
+            }
+            else
+            {
+                navigationManager.NavigateTo("/", forceLoad: true);
+            }
         }
         catch (Exception ex)
         {
-            errorMessage = "Error inesperado: " + ex.Message;
+            errorMessage = $"Error al guardar: {ex.Message}";
+            Console.WriteLine($"Error completo: {ex}");
+            Console.WriteLine($"StackTrace: {ex.StackTrace}");
         }
     }
+
 }
 
                 <style>
