@@ -1,8 +1,5 @@
 @page "/articulos"
 @rendermode InteractiveServer
-@using PublicadoraMagna.Model
-@using PublicadoraMagna.Services
-@using Microsoft.EntityFrameworkCore
 @inject ArticuloService articuloService
 @inject IDbContextFactory<PublicadoraMagna.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager Navigation
