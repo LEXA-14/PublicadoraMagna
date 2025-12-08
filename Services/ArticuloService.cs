@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PublicadoraMagna.Data;
 using PublicadoraMagna.Model;
+using System.Linq.Expressions;
 
 namespace PublicadoraMagna.Services;
 
@@ -173,7 +174,21 @@ public class ArticuloService(IDbContextFactory<ApplicationDbContext> dbFactory, 
             .FirstOrDefaultAsync(a => a.ArticuloId == id);
     }
 
- 
+    public async Task<List<Articulo>> GetLista(Expression<Func<Articulo, bool>> criterio)
+    {
+        await using var contexto = await dbFactory.CreateDbContextAsync();
+        return await contexto.Articulos
+            .Include(a => a.Categoria)
+            .Include(a => a.Institucion)
+            .Include(a => a.Periodista)
+            .Include(a => a.ServiciosPromocionales)
+                .ThenInclude(asp => asp.ServicioPromocional)
+            .Where(criterio)
+            .OrderByDescending(a => a.FechaCreacion)
+            .ToListAsync();
+    }
+
+
 }
 
 
