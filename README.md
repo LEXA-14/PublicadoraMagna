@@ -39,11 +39,15 @@ Revisar historial de pagos y tarifas
 
 Monitorear el estado de sus artículos
 
-Flujo
+Flujo Principal
 
-Escribe un articulo
+La institucion/ Periodista Escribe un articulo
+agrega imagenes
+Selecciona Servicios promocionales
 
 Lo envia a Editor para aprobacion
+
+Si el articulo es Aprobado pasa a la parte de Pago
 
 Flujo
 Recibe un encargo
@@ -157,7 +161,7 @@ Administrar configuraciones globales
 
 
 
-🔄 Flujo Principal del Sistema
+🔄 Flujo de los encargos del Sistema
 La institución crea un encargo y asigna un periodista
 
 
@@ -176,4 +180,33 @@ El artículo se publica
 Se ejecuta el pago al periodista
 
 
-(Opcional) Se aplican servicios promocionale
+(Opcional) Se aplican servicios promocionales
+
+👤Usuarios
+ADMIN: admin@publixadora.com
+Admin123!
+
+Editor: editor@magna.com
+Editor123!
+
+Periodistas:
+Enel@magna.com
+Prueba123!
+
+leudy@gmail.com
+Prueba123! Sino funciona Prueba123@
+
+maria@magna.com
+Prueba123!
+
+Institucion
+ucneNoticias@gmail.com
+Prueba123!
+
+gob@magna.com
+Prueba123!
+
+ListinDiario@gmail.com
+Prueba123@
+
+
